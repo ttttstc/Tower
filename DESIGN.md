@@ -74,21 +74,19 @@ Tower 的主视图是一座数字化的应县木塔。视觉特征：
 - 事项增删时，整个楼段的 Treemap 重新计算，其他方块动态调整大小以填满楼层
 - 楼段内不分小楼层，不做拓扑分层——依赖关系仅通过 hover 连线表达
 
-### 2.2 Hover 挤压（Cursor-driven Expansion）
+### 2.2 Hover 高亮（静态，无位移）
 
-当鼠标 hover 某个方块时：
+hover 一个方块时，**方块的位置和尺寸完全不变**。hover 只做纯视觉层变化：
 
-1. 该方块面积平滑扩张（目标面积 = 原面积 × 扩张系数 k，建议 k ≈ 1.8）
-2. 同楼层内其他方块面积按距离反比压缩（距离越近压缩越少，越远压缩越多）
-3. 楼层容器总面积保持不变
-4. 对新的面积分布重新跑 Squarified Treemap，得到新的 bounds
-5. 所有方块从当前 bounds 向目标 bounds 做弹簧物理插值
+1. 被 hover 的方块显示 1px ring（outline），颜色取填充色加深一级
+2. 该方块的上下游跨楼段依赖线淡入（见 2.4）
+3. 鼠标指针变为 pointer
 
 **约束：**
-- 挤压效果仅影响同楼层内的方块，不跨楼层
-- 楼层高度不变（楼板是刚性的）
-- 扩张不改变 z-index，不悬浮覆盖
-- 弹簧参数建议：stiffness 0.12, damping 0.78
+- 严禁任何 translate / scale / width / height 变化——方块视觉完全静止
+- 只允许 opacity、outline、cursor 三类属性响应 hover
+- hover 不触发 Layout Engine，不跑 Treemap，不走 Spring
+- 方块位置和尺寸**只在事项新增 / 删除 / 改 effort / 改 layer 时**重新计算并刷新一次（见 4.3）
 
 ### 2.3 方块内文本
 
@@ -121,6 +119,7 @@ Tower 的主视图是一座数字化的应县木塔。视觉特征：
 - 支持全选、全不选、单个点击切换
 - 选中某些人名时，对应方块高亮，其余方块 opacity 降低
 - 筛选状态不影响数据，仅影响视觉
+- **方块位置和尺寸不变**——筛选只改 opacity，不触发 Layout Engine 重算，不跑 Treemap，不走 Spring。相关的亮（opacity=1），无关的暗（opacity≈0.25）
 
 ### 2.6 详情抽屉
 
@@ -132,23 +131,53 @@ Tower 的主视图是一座数字化的应县木塔。视觉特征：
 - 文本行宽 65-75ch
 
 **可编辑字段：**
-- 标题
-- 所属楼段（五选一）
-- 依赖列表（多选其他事项）
-- 工作量（effort 数值）
-- 负责人
-- 状态（五选一）
-- 风险标记（开关，开启后状态自动设为"阻塞/风险"）
-- 备注（自由文本）
 
-编辑保存后方块视觉立即更新，tower.json 在 200ms 内写回磁盘。
+- **标题**：单行文本框
+- **所属楼段**：五选一下拉（vision / design / coordination / implementation / infrastructure）；修改后源楼段和目标楼段都需重跑 Treemap
+- **依赖列表**：可多选的事项选择器
+  - 展开后列出同项目内除自身外的全部事项，按楼段分组显示
+  - 每项左侧复选框，勾选即加入 dependencies；再次点击解除
+  - 支持按标题模糊搜索过滤候选
+  - 禁止勾选构成环依赖的事项（保存时校验，失败时 inline 报错不关闭抽屉）
+  - 已选项在顶部"当前依赖"区以芯片形式展示，点击 × 可移除
+  - 保存后依赖线（2.4）数据源立即更新
+- **工作量（effort）**：整数数字输入框
+  - 范围 1–20，步进 1；`+` / `−` 按钮或直接输入
+  - 显示单位"人天"
+  - 保存后所在楼段重跑 Treemap，方块面积按新 effort 重新分配
+- **负责人**：单选下拉（项目内已有责任人列表）+ "新建责任人"入口
+- **状态**：五选一按钮组
+- **风险标记**：开关；开启后状态字段自动设为"阻塞/风险"且置灰不可改
+- **备注**：多行文本框（自由文本）
+
+编辑保存后：方块视觉立即更新，tower.json 在 200ms 内写回磁盘；若修改涉及 layer / effort / dependencies，则触发 Layout 重算（见 4.3）。
 
 ### 2.7 项目设置
 
 - 新建项目时强制录入：项目名、目标、验收标准
 - 主看板顶部展示项目名，可点击进入编辑
 
-### 2.8 日报
+### 2.8 新增事项
+
+右侧责任人面板顶部常驻一个 **+ 新增事项** 按钮：
+
+- 位置：责任人面板最上方，在标题下方、责任人列表之上
+- 样式：宽度与面板内边距对齐（面板宽 - 2×padding），高度 32px；背景 Olive Green，文字 Ivory，无阴影；悬停时底色加深一级
+- 点击行为：打开空的详情抽屉（复用 2.6），顶部标题区显示"新增事项"，无楼段标签胶囊
+- 字段默认值：
+  - 标题：空（自动聚焦，placeholder "给事项起个标题"）
+  - 所属楼段：下拉默认 implementation（实现层），用户可改
+  - 依赖：空
+  - 工作量：1
+  - 负责人：项目上次选择的负责人；若无则空
+  - 状态：not_started
+  - 风险：false
+  - 备注：空
+- 保存条件：标题非空 + 楼段已选；不满足时"保存"按钮禁用
+- 保存后：tower.json 追加该事项，对应楼段重跑 Treemap（见 4.3），抽屉关闭
+- 取消（关闭抽屉未保存）：放弃草稿，不写盘
+
+### 2.9 日报
 
 - 点击"今日日报"按钮，全屏抽屉显示
 - 对比昨日快照与当前 tower.json
@@ -226,72 +255,64 @@ type Status =
 
 ```
 ┌──────────────────────────────────────────────┐
-│  React State（低频，触发重渲染）                │
+│  React State（数据 + 非几何 UI 状态）           │
 │  - project: TowerProject                      │
 │  - selectedItemId: 详情抽屉                    │
-│  - hoveredItemId: hover 哪个方块               │
+│  - hoveredItemId: hover 哪个方块（仅用于        │
+│    ring outline 与依赖线，不进 Layout）         │
 │  - assigneeFilter: 责任人筛选状态              │
 │  - zoomLevel / panOffset: 缩放平移             │
 └──────────────────┬───────────────────────────┘
-                   │ hoveredItemId 变化时
+                   │ items 新增 / 删除 / 改 effort / 改 layer 时
                    ▼
 ┌──────────────────────────────────────────────┐
 │  Layout Engine（纯计算，不触发渲染）            │
-│  - 根据 hoveredItemId 计算目标面积分布          │
-│  - 每个楼层跑 Squarified Treemap → 目标 bounds │
-│  - 存入 targetBounds: Map<string, Rect>       │
+│  - 按受影响楼段跑 Squarified Treemap          │
+│  - 未受影响的楼段不重算                        │
+│  - 输出 targetBounds: Map<itemId, Rect>       │
 └──────────────────┬───────────────────────────┘
-                   │ 每帧 RAF
+                   │ CRUD 触发时启动一次过渡
                    ▼
 ┌──────────────────────────────────────────────┐
-│  Spring Engine（RAF 循环，脱离 React）          │
+│  Spring Engine（CRUD 过渡期 RAF，收敛即停）     │
 │  - 每个方块 4 个弹簧值: x, y, w, h            │
 │  - 每帧插值 current → target                  │
 │  - 直接写 DOM: style.transform + width/height │
-│  - 不调用 setState，不触发 React diff          │
+│  - |Δ| < 0.05 连续两帧后关闭 RAF               │
 └──────────────────────────────────────────────┘
 ```
 
-React 管数据 CRUD、事件绑定、UI 结构。动画完全在 React 外用 RAF 驱动。这是 60fps 的保障。
+Hover、点击、责任人筛选、缩放平移等交互**不进入 Layout / Spring 管线**，这是 hover 静态、筛选不移位的实现基础。
 
-### 4.3 Hover 挤压算法
+### 4.3 Layout 失效触发（Invalidation）
 
-```
-当方块 A 被 hover 时:
+Layout Engine 仅在以下事件后触发重算：
 
-1. 计算扩张后面积:
-   A_area_new = A_area_old × k  (k ≈ 1.8)
+| 事件 | 重算范围 |
+|------|----------|
+| 事项新增 | 目标楼段重跑 Treemap |
+| 事项删除 | 源楼段重跑 Treemap |
+| 修改 effort | 所在楼段重跑 Treemap |
+| 修改 layer（跨楼段移动） | 源楼段 + 目标楼段各跑一次 |
+| 视口尺寸变化（resize） | 全塔重跑 Treemap |
 
-2. 面积增量:
-   delta = A_area_new - A_area_old
+**明确不触发**重算的事件：hover、点击、责任人筛选 / hover 预览、依赖线浮现、缩放、平移、状态切换（status）、备注修改、风险开关、负责人切换。
 
-3. 其余方块 B 的压缩权重:
-   weight_B = 1 / distance(center_B, center_A) ^ falloff
-   falloff ≈ 1.5
-
-4. 每个 B 的新面积:
-   B_area_new = B_area_old - delta × (weight_B / Σweights)
-
-5. 对 {A_new, B_new, C_new...} 重新跑 Squarified Treemap
-   → 得到所有方块的新 bounds
-
-6. Spring Engine 将当前 bounds 向新 bounds 插值
-```
-
-每帧不是移动单个方块，而是重新计算整个 Treemap 的布局——弹簧只负责平滑过渡。
+重算后，方块从旧 bounds 到新 bounds 由 Spring Engine 一次性插值过渡（stiffness 0.12, damping 0.78），典型 300–500ms 收敛，收敛后 RAF 暂停。
 
 ### 4.4 渲染架构
 
 ```
-绝对禁止: CSS Flexbox/Grid 驱动布局变化
-绝对禁止: :hover 伪类触发重排
+绝对禁止: CSS Flexbox/Grid 驱动方块尺寸/位置
+绝对禁止: :hover 伪类改变方块的 width / height / transform
+允许:     :hover 改 outline / opacity / cursor
 
 要求:
 - 容器 position: relative
 - 所有方块 position: absolute
-- 每帧仅更新 transform: translate(x, y) + width + height
+- CRUD 过渡期每帧更新 transform + width + height
+- 过渡完成后 RAF 暂停，CSS 负责静态外观
 - 文本测量使用 Canvas measureText API 预计算
-- 弹簧引擎使用 RAF (requestAnimationFrame) 循环
 - 弹簧参数: stiffness 0.12, damping 0.78
 ```
 
@@ -328,7 +349,10 @@ React 管数据 CRUD、事件绑定、UI 结构。动画完全在 React 外用 R
       </PagodaShell>
       <DependencyOverlay />     // SVG 依赖线层
     </TowerViewport>
-    <AssigneePanel />           // 右侧责任人面板 (常驻)
+    <SidePanel>                 // 右侧常驻面板
+      <AddItemButton />         // 顶部: [+ 新增事项]
+      <AssigneePanel />         // 责任人列表
+    </SidePanel>
   </main>
   <DetailDrawer />              // 详情抽屉 (覆盖在 AssigneePanel 之上)
   <DailyReportModal />          // 日报弹窗
@@ -344,18 +368,18 @@ React 管数据 CRUD、事件绑定、UI 结构。动画完全在 React 外用 R
 ┌─────────────────────────────────────────────────────┐
 │  Header: 项目名 / 目标 / [今日日报]                    │
 ├───────────────────────────────┬─────────────────────┤
-│                               │                     │
-│                               │   责任人面板         │
-│         塔体视口               │                     │
-│     (缩放/平移区域)            │   ☑ PM              │
-│                               │   ☑ Arch            │
-│        ┌─ 塔刹 ─┐             │   ☑ Dev-A           │
-│        │ 愿景层  │             │   ☐ Dev-B           │
-│       ─┤飞檐标注├─            │   ☑ Dev-C           │
-│        │ 设计层  │             │   ...               │
-│       ─┤飞檐标注├─            │                     │
-│        │ 协同层  │             │   [全选] [全不选]    │
-│       ─┤飞檐标注├─            │                     │
+│                               │ ┌─────────────────┐ │
+│                               │ │  + 新增事项      │ │
+│         塔体视口               │ └─────────────────┘ │
+│     (缩放/平移区域)            │   责任人            │
+│                               │   ☑ PM              │
+│        ┌─ 塔刹 ─┐             │   ☑ Arch            │
+│        │ 愿景层  │             │   ☑ Dev-A           │
+│       ─┤飞檐标注├─            │   ☐ Dev-B           │
+│        │ 设计层  │             │   ☑ Dev-C           │
+│       ─┤飞檐标注├─            │   ...               │
+│        │ 协同层  │             │                     │
+│       ─┤飞檐标注├─            │   [全选] [全不选]    │
 │        │ 实现层  │             │                     │
 │       ─┤飞檐标注├─            │                     │
 │        │基础设施 │             │                     │
@@ -379,10 +403,12 @@ React 管数据 CRUD、事件绑定、UI 结构。动画完全在 React 外用 R
 - G4: 项目设置（名称/目标/验收标准）
 - G5: tower.json 本地持久化（File System Access API）
 - G6: 每日快照 + 日报生成
-- G7: Hover 挤压动效（Cursor-driven Expansion + Spring Physics）
+- G7: Hover 静态高亮（ring outline + 依赖线浮现，方块位置尺寸不变）
 - G8: 跨楼段依赖线（hover 浮现）
-- G9: 责任人筛选面板
+- G9: 责任人筛选面板（仅改 opacity，不重排）
 - G10: 缩放/平移
+- G11: 新增事项按钮（右侧面板顶部常驻）
+- G12: CRUD 后的 Treemap 一次性 Spring 过渡
 
 ### 不做（MVP 后）
 
@@ -405,7 +431,7 @@ React 管数据 CRUD、事件绑定、UI 结构。动画完全在 React 外用 R
 | A2 | 所有用色 100% 暖色 token，无冷色蓝灰 |
 | A3 | 全页面零 drop shadow |
 | A4 | 方块面积严格 ∝ 工作量 |
-| A5 | hover 挤压 60fps，弹簧物理驱动 |
+| A5 | Hover 时方块位置和尺寸零变化；仅 CRUD / resize 触发 Treemap 重算，过渡 60fps |
 | A6 | 依赖线 hover 150ms 淡入，移开 200ms 淡出 |
 | A7 | 详情抽屉 240ms ease-out-expo 滑入 |
 | A8 | 编辑保存后 200ms 内写回 tower.json |

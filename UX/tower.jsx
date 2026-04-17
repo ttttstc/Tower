@@ -191,31 +191,12 @@ function Foundation({width}){
 }
 
 function Floor({layer,items,towerWidth,hoveredId,hlSet,assigneeFilter,gold,onEnter,onLeave,onClick}){
-  const filtered=assigneeFilter?items.filter(it=>assigneeFilter.has(it.assignee)):items;
-  const totalE=filtered.reduce((s,it)=>s+it.effort,0);
+  // DESIGN 2.2 & 2.5: hover / 责任人筛选 均不触发 Layout Engine 重算
+  // 布局只依赖 items / towerWidth / h；hover 仅改 outline + opacity；filter 仅改 opacity
+  const totalE=items.reduce((s,it)=>s+it.effort,0);
   const h=Math.max(55,totalE*4.5);
 
-  const expanded=useMemo(()=>{
-    if(!hoveredId||!filtered.find(it=>it.id===hoveredId))return filtered;
-    const k=1.6,hov=filtered.find(it=>it.id===hoveredId);
-    if(!hov)return filtered;
-    const init=squarify(filtered,{x:0,y:0,w:towerWidth,h});
-    const centers=Object.fromEntries(init.map(b=>[b.id,{x:b.bx+b.bw/2,y:b.by+b.bh/2}]));
-    const hc=centers[hoveredId];if(!hc)return filtered;
-    const delta=hov.effort*(k-1);
-    const others=filtered.filter(it=>it.id!==hoveredId);
-    let wSum=0;const weights={};
-    others.forEach(it=>{const c=centers[it.id];if(!c){weights[it.id]=0;return;}
-      const dist=Math.sqrt((c.x-hc.x)**2+(c.y-hc.y)**2)||1;
-      weights[it.id]=1/(dist**1.2);wSum+=weights[it.id];});
-    return filtered.map(it=>{
-      if(it.id===hoveredId)return{...it,effort:it.effort*k};
-      const w=wSum>0?weights[it.id]/wSum:1/others.length;
-      return{...it,effort:Math.max(0.3,it.effort-delta*w)};
-    });
-  },[filtered,hoveredId,towerWidth,h]);
-
-  const laid=squarify(expanded,{x:0,y:0,w:towerWidth,h});
+  const laid=useMemo(()=>squarify(items,{x:0,y:0,w:towerWidth,h}),[items,towerWidth,h]);
   const bMap=Object.fromEntries(laid.map(b=>[b.id,b]));
   const G=1;
 
@@ -223,12 +204,15 @@ function Floor({layer,items,towerWidth,hoveredId,hlSet,assigneeFilter,gold,onEnt
     <div style={{position:"relative",width:towerWidth,height:h,
       background:gold?"linear-gradient(180deg,rgba(107,124,78,0.18),rgba(107,124,78,0.08))":"rgba(244,238,228,0.5)",
       borderLeft:"2px solid #c4b99e",borderRight:"2px solid #c4b99e",overflow:"hidden"}}>
-      {filtered.map(item=>{
+      {items.map(item=>{
         const b=bMap[item.id];if(!b)return null;
         const sc=STATUS_COLORS[item.status];
         const hov=hoveredId===item.id;
         const hl=hlSet&&hlSet.has(item.id);
-        const dim=hlSet&&!hlSet.has(item.id);
+        // DESIGN 2.5: 相关的亮 (opacity=1), 无关的暗 (opacity≈0.25)
+        const dimByAssignee=assigneeFilter&&!assigneeFilter.has(item.assignee);
+        const dimByHover=hlSet&&!hlSet.has(item.id);
+        const opacity=dimByAssignee?0.25:dimByHover?0.12:1;
         const gld=gold&&item.status==="done";
         return(
           <div key={item.id} data-brick={item.id}
@@ -239,9 +223,11 @@ function Floor({layer,items,towerWidth,hoveredId,hlSet,assigneeFilter,gold,onEnt
               width:Math.max(0,b.bw-G*2),height:Math.max(0,b.bh-G*2),
               background:gld?"linear-gradient(135deg,#8a9a5e,#6b7c4e)":sc,
               borderRadius:2,cursor:"pointer",
-              transition:"all .3s cubic-bezier(.25,.46,.45,.94)",
-              opacity:dim?0.12:1,
-              transform:hov?"scale(1.03)":"none",zIndex:hov?5:1,
+              // DESIGN 2.2: 严禁任何 translate / scale / width / height 变化
+              // 仅允许 outline / opacity 过渡
+              transition:"opacity .18s ease, box-shadow .18s ease",
+              opacity,
+              zIndex:hov?5:1,
               display:"flex",alignItems:"center",justifyContent:"center",
               padding:"2px 3px",overflow:"hidden",
               boxShadow:hov?`0 0 0 1.5px ${sc}, 0 2px 8px ${sc}30`:"none",
@@ -280,71 +266,218 @@ function DepLines({items,hoveredId,towerRef}){
   return(<svg style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:10}}>{lines.map((l,i)=><line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#b5a88e" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.55"/>)}</svg>);
 }
 
-function Drawer({item,onClose,onUpdate,items}){
+function Drawer({item,onClose,onUpdate,onCreate,items,assignees}){
   const[form,setForm]=useState(item);
-  useEffect(()=>setForm(item),[item]);
+  const[depSearch,setDepSearch]=useState("");
+  const[err,setErr]=useState("");
+  const[depsOpen,setDepsOpen]=useState(false);
+  useEffect(()=>{setForm(item);setDepSearch("");setErr("");setDepsOpen(false);},[item]);
   if(!item)return null;
-  const deps=(item.deps||[]).map(d=>items.find(x=>x.id===d)).filter(Boolean);
-  const depOf=items.filter(x=>(x.deps||[]).includes(item.id));
+  const isNew=!!item._isNew;
+
+  // 环路检测：若 candidate 的依赖链中出现 form.id，则形成循环
+  const wouldCycle=(candidateId)=>{
+    if(candidateId===form.id)return true;
+    const map=Object.fromEntries(items.map(x=>[x.id,x]));
+    const seen=new Set();
+    const walk=id=>{
+      if(seen.has(id))return false;
+      seen.add(id);
+      const it=map[id];if(!it)return false;
+      for(const d of (it.deps||[])){
+        if(d===form.id)return true;
+        if(walk(d))return true;
+      }
+      return false;
+    };
+    return walk(candidateId);
+  };
+
+  const toggleDep=(id)=>{
+    const cur=form.deps||[];
+    if(cur.includes(id)){setForm({...form,deps:cur.filter(x=>x!==id)});setErr("");}
+    else if(wouldCycle(id)){setErr("添加该依赖会形成循环");}
+    else{setForm({...form,deps:[...cur,id]});setErr("");}
+  };
+
+  const bumpEffort=(delta)=>{
+    const v=Math.max(1,Math.min(20,(form.effort||1)+delta));
+    setForm({...form,effort:v});
+  };
+
+  const save=()=>{
+    if(!form.title||!form.title.trim()){setErr("请填写标题");return;}
+    if(!form.layer){setErr("请选择楼段");return;}
+    if(isNew){onCreate({...form,title:form.title.trim()});}
+    else{onUpdate({...form,title:form.title.trim()});}
+  };
+
+  const selectedDepItems=(form.deps||[]).map(d=>items.find(x=>x.id===d)).filter(Boolean);
+  const depOf=!isNew?items.filter(x=>(x.deps||[]).includes(form.id)):[];
+
+  const q=depSearch.toLowerCase().trim();
+  const depCandidates=items
+    .filter(x=>x.id!==form.id&&(q===""||x.title.toLowerCase().includes(q)));
+  const depsByLayer={};
+  LAYER_ORDER.forEach(L=>{depsByLayer[L]=depCandidates.filter(x=>x.layer===L);});
+
+  const label=(t)=><div style={{fontSize:8,fontWeight:700,color:"#9a8e7a",letterSpacing:".06em",textTransform:"uppercase",marginBottom:5}}>{t}</div>;
+  const inputSt={width:"100%",padding:"6px 8px",borderRadius:3,border:"1px solid #d4c8b0",background:"#fff",fontSize:11,color:"#3d3528",fontFamily:"inherit",outline:"none"};
+
   return(<>
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.1)",zIndex:99}} onClick={onClose}/>
-    <div style={{position:"fixed",top:0,right:0,width:340,height:"100vh",background:"#f8f4ec",borderLeft:"1px solid #d4c8b0",zIndex:100,display:"flex",flexDirection:"column",animation:"drawerIn .24s cubic-bezier(.16,1,.3,1)"}}>
-      <div style={{padding:"22px 18px 14px",borderBottom:"1px solid #e4ddd0"}}>
-        <div style={{display:"flex",justifyContent:"space-between"}}>
-          <div>
-            <div style={{fontSize:8,fontWeight:700,color:"#9a8e7a",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{LAYER_LABELS[item.layer]}</div>
-            <div style={{fontSize:16,fontWeight:700,color:"#3d3528",lineHeight:1.3,fontFamily:"'Fraunces',Georgia,serif"}}>{item.title}</div>
+    <div style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#f8f4ec",borderLeft:"1px solid #d4c8b0",zIndex:100,display:"flex",flexDirection:"column",animation:"drawerIn .24s cubic-bezier(.16,1,.3,1)"}}>
+      {/* Header */}
+      <div style={{padding:"20px 18px 12px",borderBottom:"1px solid #e4ddd0"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{flex:1,marginRight:8}}>
+            <div style={{fontSize:8,fontWeight:700,color:"#9a8e7a",letterSpacing:".1em",textTransform:"uppercase",marginBottom:4}}>{isNew?"新增事项":LAYER_LABELS[form.layer]}</div>
+            <input
+              value={form.title||""}
+              onChange={e=>setForm({...form,title:e.target.value})}
+              placeholder="请输入标题…"
+              style={{width:"100%",fontSize:15,fontWeight:700,color:"#3d3528",lineHeight:1.3,fontFamily:"'Fraunces',Georgia,serif",border:"none",background:"transparent",outline:"none",borderBottom:"1px dashed #d4c8b0",paddingBottom:2}}
+            />
           </div>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:16,color:"#b5a88e",cursor:"pointer"}}>×</button>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:18,color:"#b5a88e",cursor:"pointer",lineHeight:1}}>×</button>
         </div>
       </div>
-      <div style={{flex:1,overflow:"auto",padding:"14px 18px",display:"flex",flexDirection:"column",gap:12}}>
+
+      {/* Body */}
+      <div style={{flex:1,overflow:"auto",padding:"14px 18px",display:"flex",flexDirection:"column",gap:14}}>
+        {/* 楼段 */}
         <div>
-          <div style={{fontSize:8,fontWeight:700,color:"#9a8e7a",marginBottom:5}}>状态</div>
+          {label("所属楼段")}
+          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+            {LAYER_ORDER.map(L=>(
+              <button key={L} onClick={()=>setForm({...form,layer:L})} style={{
+                padding:"3px 8px",borderRadius:3,fontSize:9.5,fontWeight:600,cursor:"pointer",
+                border:form.layer===L?"2px solid #6b7c4e":"1px solid #d4c8b0",
+                background:form.layer===L?"#6b7c4e22":"#fff",
+                color:form.layer===L?"#6b7c4e":"#9a8e7a",
+              }}>{LAYER_LABELS[L]}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* 状态 */}
+        <div>
+          {label("状态")}
           <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
             {Object.entries(STATUS_LABELS).map(([k,lb])=>(
-              <button key={k} onClick={()=>{const u={...item,status:k};onUpdate(u);}} style={{
+              <button key={k} onClick={()=>setForm({...form,status:k})} style={{
                 padding:"3px 9px",borderRadius:3,fontSize:9.5,fontWeight:600,cursor:"pointer",
-                border:item.status===k?`2px solid ${STATUS_COLORS[k]}`:"1px solid #d4c8b0",
-                background:item.status===k?STATUS_COLORS[k]+"22":"#fff",
-                color:item.status===k?STATUS_COLORS[k]:"#9a8e7a",
+                border:form.status===k?`2px solid ${STATUS_COLORS[k]}`:"1px solid #d4c8b0",
+                background:form.status===k?STATUS_COLORS[k]+"22":"#fff",
+                color:form.status===k?STATUS_COLORS[k]:"#9a8e7a",
               }}>{lb}</button>
             ))}
           </div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-          <div style={{background:"#fff",borderRadius:5,padding:"7px 9px",border:"1px solid #e4ddd0"}}>
-            <div style={{fontSize:7,color:"#9a8e7a",fontWeight:700,marginBottom:1}}>工作量</div>
-            <div style={{fontSize:16,fontWeight:700,color:"#3d3528",fontFamily:"Georgia,serif"}}>{item.effort}<span style={{fontSize:9,color:"#9a8e7a"}}> 人天</span></div>
+
+        {/* 工作量 / 负责人 */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div>
+            {label("工作量 (人天)")}
+            <div style={{display:"flex",alignItems:"center",gap:4,background:"#fff",border:"1px solid #d4c8b0",borderRadius:3,padding:"3px 4px"}}>
+              <button onClick={()=>bumpEffort(-1)} style={{width:20,height:20,border:"1px solid #d4c8b0",background:"#f8f4ec",color:"#5a5040",borderRadius:2,cursor:"pointer",fontSize:12,lineHeight:1}}>−</button>
+              <input type="number" min={1} max={20} value={form.effort||1}
+                onChange={e=>{const v=parseInt(e.target.value)||1;setForm({...form,effort:Math.max(1,Math.min(20,v))});}}
+                style={{flex:1,textAlign:"center",border:"none",background:"transparent",fontSize:13,fontWeight:700,color:"#3d3528",outline:"none",fontFamily:"Georgia,serif"}}/>
+              <button onClick={()=>bumpEffort(1)} style={{width:20,height:20,border:"1px solid #d4c8b0",background:"#f8f4ec",color:"#5a5040",borderRadius:2,cursor:"pointer",fontSize:12,lineHeight:1}}>+</button>
+            </div>
           </div>
-          <div style={{background:"#fff",borderRadius:5,padding:"7px 9px",border:"1px solid #e4ddd0"}}>
-            <div style={{fontSize:7,color:"#9a8e7a",fontWeight:700,marginBottom:1}}>负责人</div>
-            <div style={{fontSize:13,fontWeight:650,color:"#3d3528"}}>{item.assignee}</div>
+          <div>
+            {label("负责人")}
+            <input list="assignee-list" value={form.assignee||""}
+              onChange={e=>setForm({...form,assignee:e.target.value})}
+              placeholder="姓名 / 团队" style={inputSt}/>
+            <datalist id="assignee-list">
+              {assignees.map(a=><option key={a} value={a}/>)}
+            </datalist>
           </div>
         </div>
-        {deps.length>0&&<div>
-          <div style={{fontSize:8,fontWeight:700,color:"#9a8e7a",marginBottom:3}}>依赖 ↓</div>
-          {deps.map(d=>(
-            <div key={d.id} style={{display:"flex",alignItems:"center",gap:4,padding:"3px 7px",background:"#fff",borderRadius:3,marginBottom:2,border:"1px solid #e4ddd0"}}>
-              <div style={{width:5,height:5,borderRadius:"50%",background:STATUS_COLORS[d.status]}}/>
-              <span style={{fontSize:9.5,color:"#5a5040",flex:1}}>{d.title}</span>
-              <span style={{fontSize:8,color:STATUS_COLORS[d.status],fontWeight:650}}>{STATUS_LABELS[d.status]}</span>
+
+        {/* 依赖编辑 */}
+        <div>
+          {label(`依赖 (${(form.deps||[]).length})`)}
+          <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:6}}>
+            {selectedDepItems.length===0&&<span style={{fontSize:9.5,color:"#b5a88e",fontStyle:"italic"}}>暂无依赖</span>}
+            {selectedDepItems.map(d=>(
+              <span key={d.id} onClick={()=>toggleDep(d.id)} style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 6px",background:"#fff",border:"1px solid "+STATUS_COLORS[d.status]+"55",borderRadius:3,fontSize:9,color:"#5a5040",cursor:"pointer"}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:STATUS_COLORS[d.status]}}/>
+                {d.title}
+                <span style={{color:"#b5a88e",marginLeft:2}}>×</span>
+              </span>
+            ))}
+          </div>
+          <button onClick={()=>setDepsOpen(v=>!v)} style={{width:"100%",padding:"4px 8px",background:"#fff",border:"1px dashed #d4c8b0",borderRadius:3,fontSize:9.5,color:"#7a6e5d",cursor:"pointer",textAlign:"left"}}>
+            {depsOpen?"▼ 收起选择器":"▶ 添加 / 编辑依赖…"}
+          </button>
+          {depsOpen&&<div style={{marginTop:6,background:"#fff",border:"1px solid #d4c8b0",borderRadius:4,padding:8}}>
+            <input value={depSearch} onChange={e=>setDepSearch(e.target.value)} placeholder="搜索事项…" style={{...inputSt,marginBottom:6,fontSize:10}}/>
+            <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
+              {LAYER_ORDER.map(L=>{
+                const arr=depsByLayer[L];if(!arr||!arr.length)return null;
+                return(<div key={L}>
+                  <div style={{fontSize:8,fontWeight:700,color:"#9a8e7a",letterSpacing:".06em",marginBottom:2,textTransform:"uppercase"}}>{LAYER_LABELS[L]}</div>
+                  {arr.map(c=>{
+                    const sel=(form.deps||[]).includes(c.id);
+                    const cyc=!sel&&wouldCycle(c.id);
+                    return(<div key={c.id} onClick={()=>!cyc&&toggleDep(c.id)} style={{display:"flex",alignItems:"center",gap:5,padding:"3px 5px",borderRadius:2,cursor:cyc?"not-allowed":"pointer",opacity:cyc?0.4:1,background:sel?"rgba(107,124,78,0.12)":"transparent"}}>
+                      <div style={{width:10,height:10,borderRadius:1.5,border:"1.5px solid "+(sel?"#6b7c4e":"#d4c8b0"),background:sel?"#6b7c4e":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {sel&&<span style={{color:"#fff",fontSize:7,lineHeight:1}}>✓</span>}
+                      </div>
+                      <span style={{width:5,height:5,borderRadius:"50%",background:STATUS_COLORS[c.status]}}/>
+                      <span style={{fontSize:9.5,color:"#5a5040",flex:1}}>{c.title}</span>
+                      {cyc&&<span style={{fontSize:7,color:"#b5453a"}}>循环</span>}
+                    </div>);
+                  })}
+                </div>);
+              })}
+              {depCandidates.length===0&&<div style={{fontSize:9.5,color:"#b5a88e",textAlign:"center",padding:8}}>无匹配事项</div>}
             </div>
-          ))}
-        </div>}
+          </div>}
+        </div>
+
+        {/* 被依赖（仅查看） */}
         {depOf.length>0&&<div>
-          <div style={{fontSize:8,fontWeight:700,color:"#9a8e7a",marginBottom:3}}>被依赖 ↑</div>
+          {label(`被依赖 ↑ (${depOf.length})`)}
           {depOf.map(d=>(
             <div key={d.id} style={{display:"flex",alignItems:"center",gap:4,padding:"3px 7px",background:"#fff",borderRadius:3,marginBottom:2,border:"1px solid #e4ddd0"}}>
               <div style={{width:5,height:5,borderRadius:"50%",background:STATUS_COLORS[d.status]}}/>
-              <span style={{fontSize:9.5,color:"#5a5040"}}>{d.title}</span>
+              <span style={{fontSize:9.5,color:"#5a5040",flex:1}}>{d.title}</span>
+              <span style={{fontSize:8,color:"#9a8e7a"}}>{LAYER_LABELS[d.layer]}</span>
             </div>
           ))}
         </div>}
-        {item.risk&&<div style={{background:"#b5453a10",border:"1px solid #b5453a20",borderRadius:5,padding:"7px 9px"}}>
-          <div style={{fontSize:7,fontWeight:800,color:"#b5453a",marginBottom:2}}>⚠ 风险</div>
-          <div style={{fontSize:9.5,color:"#5a5040",lineHeight:1.4}}>{item.notes||"存在风险"}</div>
-        </div>}
+
+        {/* 风险 */}
+        <div>
+          {label("风险")}
+          <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+            <input type="checkbox" checked={!!form.risk} onChange={e=>setForm({...form,risk:e.target.checked})} style={{accentColor:"#b5453a"}}/>
+            <span style={{fontSize:10,color:form.risk?"#b5453a":"#9a8e7a",fontWeight:form.risk?700:500}}>
+              {form.risk?"⚠ 标记为风险":"无风险"}
+            </span>
+          </label>
+        </div>
+
+        {/* 备注 */}
+        <div>
+          {label("备注")}
+          <textarea value={form.notes||""} onChange={e=>setForm({...form,notes:e.target.value})}
+            placeholder="补充说明（可选）"
+            style={{...inputSt,minHeight:60,resize:"vertical",fontSize:10,lineHeight:1.4}}/>
+        </div>
+
+        {err&&<div style={{fontSize:9.5,color:"#b5453a",background:"#b5453a12",border:"1px solid #b5453a30",borderRadius:3,padding:"5px 8px"}}>{err}</div>}
+      </div>
+
+      {/* Footer actions */}
+      <div style={{padding:"10px 18px 14px",borderTop:"1px solid #e4ddd0",display:"flex",gap:8,background:"#f8f4ec"}}>
+        <button onClick={onClose} style={{flex:1,padding:"7px 0",borderRadius:3,border:"1px solid #d4c8b0",background:"#fff",color:"#7a6e5d",fontSize:10,fontWeight:600,cursor:"pointer"}}>取消</button>
+        <button onClick={save} style={{flex:2,padding:"7px 0",borderRadius:3,border:"none",background:"#6b7c4e",color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:".04em"}}>{isNew?"创建事项":"保存修改"}</button>
       </div>
     </div>
   </>);
@@ -392,6 +525,26 @@ export default function Tower(){
   };
 
   const onUpdate=u=>{setProject(p=>({...p,items:p.items.map(it=>it.id===u.id?u:it)}));setSelected(u);};
+  const onCreate=u=>{
+    const id=u.id||("n"+Date.now().toString(36));
+    const fresh={...u,id,_isNew:undefined};
+    setProject(p=>({...p,items:[...p.items,fresh]}));
+    setSelected(null);
+  };
+  const openNewItem=()=>{
+    setSelected({
+      _isNew:true,
+      id:"n"+Date.now().toString(36),
+      title:"",
+      layer:"implementation",
+      status:"not_started",
+      effort:1,
+      deps:[],
+      assignee:"",
+      risk:false,
+      notes:"",
+    });
+  };
 
   const totalDone=project.items.filter(it=>it.status==="done").length;
   const pct=Math.round((totalDone/project.items.length)*100);
@@ -460,8 +613,21 @@ export default function Tower(){
           </div>
         </div>
 
-        {/* Assignee panel */}
-        <div style={{width:150,flexShrink:0,borderLeft:"1px solid #d4c8b0",background:"#f8f4ec",padding:"14px 10px",overflowY:"auto"}}>
+        {/* Side panel: 新增事项 + 责任人 */}
+        <div style={{width:160,flexShrink:0,borderLeft:"1px solid #d4c8b0",background:"#f8f4ec",padding:"14px 10px",overflowY:"auto",display:"flex",flexDirection:"column",gap:10}}>
+          {/* DESIGN 2.8: + 新增事项 按钮置于右栏顶部 */}
+          <button onClick={openNewItem} style={{
+            width:"100%",height:32,borderRadius:4,border:"none",
+            background:"#6b7c4e",color:"#fff",
+            fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:".04em",
+            display:"flex",alignItems:"center",justifyContent:"center",gap:5,
+            boxShadow:"0 1px 2px rgba(107,124,78,0.25)",
+          }}>
+            <span style={{fontSize:14,lineHeight:1,fontWeight:400}}>+</span>
+            新增事项
+          </button>
+
+          <div>
           <div style={{fontSize:8,fontWeight:700,color:"#9a8e7a",letterSpacing:".08em",marginBottom:5,textTransform:"uppercase"}}>责任人</div>
           <div style={{display:"flex",gap:3,marginBottom:6}}>
             <button onClick={()=>setAssigneeFilter(null)} style={{flex:1,padding:"2px 0",borderRadius:2,border:"1px solid #d4c8b0",background:!assigneeFilter?"#6b7c4e":"#fff",color:!assigneeFilter?"#fff":"#9a8e7a",fontSize:8,fontWeight:600,cursor:"pointer"}}>全选</button>
@@ -480,6 +646,7 @@ export default function Tower(){
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
@@ -490,7 +657,7 @@ export default function Tower(){
         ))}
       </div>
 
-      {selected&&<Drawer item={selected} onClose={()=>setSelected(null)} onUpdate={onUpdate} items={project.items}/>}
+      {selected&&<Drawer item={selected} onClose={()=>setSelected(null)} onUpdate={onUpdate} onCreate={onCreate} items={project.items} assignees={assignees}/>}
       {showReport&&<Report items={project.items} onClose={()=>setShowReport(false)}/>}
     </div>
   );
