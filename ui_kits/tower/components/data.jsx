@@ -1,7 +1,7 @@
 /* Tower UI Kit — shared tokens (data + helpers) */
 
-const LAYER_ORDER = ["vision","design","infrastructure","capability","coordination","ui"];
-const LAYER_LABELS = { vision:"愿景层", design:"设计层", infrastructure:"基础设施层", capability:"能力层", coordination:"协同层", ui:"用户界面层" };
+const LAYER_ORDER = ["ui","coordination","capability","infrastructure","design","vision"];
+const LAYER_LABELS = { ui:"用户界面层", coordination:"协同层", capability:"能力层", infrastructure:"基础设施层", design:"设计层", vision:"愿景层" };
 
 /* Status colors — harmonized with 红木/青瓦/朱墙 pagoda palette */
 const STATUS_COLORS = {

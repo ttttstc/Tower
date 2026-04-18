@@ -299,8 +299,8 @@ html,body{margin:0;padding:0;background:#f4eee4;overflow:hidden;font-family:"Int
 <script type="text/babel">
 /* Tower UI Kit — shared tokens (data + helpers) */
 
-const LAYER_ORDER = ["vision","design","infrastructure","capability","coordination","ui"];
-const LAYER_LABELS = { vision:"愿景层", design:"设计层", infrastructure:"基础设施层", capability:"能力层", coordination:"协同层", ui:"用户界面层" };
+const LAYER_ORDER = ["ui","coordination","capability","infrastructure","design","vision"];
+const LAYER_LABELS = { ui:"用户界面层", coordination:"协同层", capability:"能力层", infrastructure:"基础设施层", design:"设计层", vision:"愿景层" };
 
 /* Status colors — harmonized with 红木/青瓦/朱墙 pagoda palette */
 const STATUS_COLORS = {
@@ -946,7 +946,7 @@ function TowerApp(){
   const assignees=[...new Set(items.map(i=>i.assignee).filter(Boolean))].sort();
 
   /* Width steps are subtle — real pagoda floors are nearly uniform, only slight widening near base */
-  const widths={vision:260,design:278,infrastructure:296,capability:316,coordination:334,ui:352};
+  const widths={ui:260,coordination:278,capability:296,infrastructure:316,design:334,vision:352};
   const doneCt=items.filter(i=>i.status==="done").length;
   const pct=Math.round((doneCt/items.length)*100);
 
@@ -1006,8 +1006,8 @@ function TowerApp(){
               </div>);
             })}
             {/* final bottom eave over foundation */}
-            <Eave width={widths.ui+16}/>
-            <Foundation width={widths.ui}/>
+            <Eave width={widths.vision+16}/>
+            <Foundation width={widths.vision}/>
             <DepLines items={items} hoveredId={hovered} towerRef={towerRef}/>
           </div>
 
