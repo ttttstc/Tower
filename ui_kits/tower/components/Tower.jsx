@@ -52,11 +52,11 @@ function TowerApp(){
   const assignees=[...new Set(items.map(i=>i.assignee).filter(Boolean))].sort();
 
   /* Width steps are subtle — real pagoda floors are nearly uniform, only slight widening near base */
-  const widths={vision:260,design:278,coordination:296,implementation:316,infrastructure:340};
+  const widths={vision:260,design:278,infrastructure:296,capability:316,coordination:334,ui:352};
   const doneCt=items.filter(i=>i.status==="done").length;
   const pct=Math.round((doneCt/items.length)*100);
 
-  const handleNew=()=>setSelected({_isNew:true,id:"new_"+Date.now(),title:"",layer:"implementation",status:"not_started",effort:3,deps:[],assignee:"",risk:false,notes:""});
+  const handleNew=()=>setSelected({_isNew:true,id:"new_"+Date.now(),title:"",layer:"capability",status:"not_started",effort:3,deps:[],assignee:"",risk:false,notes:""});
   const handleUpdate=(it)=>{setItems(items.map(x=>x.id===it.id?it:x));setSelected(null);};
   const handleCreate=(it)=>{const{_isNew,...clean}=it;setItems([...items,clean]);setSelected(null);};
 
@@ -112,8 +112,8 @@ function TowerApp(){
               </div>);
             })}
             {/* final bottom eave over foundation */}
-            <Eave width={widths.infrastructure+16}/>
-            <Foundation width={widths.infrastructure}/>
+            <Eave width={widths.ui+16}/>
+            <Foundation width={widths.ui}/>
             <DepLines items={items} hoveredId={hovered} towerRef={towerRef}/>
           </div>
 

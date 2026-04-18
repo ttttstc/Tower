@@ -1,7 +1,7 @@
 /* Tower UI Kit — shared tokens (data + helpers) */
 
-const LAYER_ORDER = ["infrastructure","implementation","coordination","design","vision"];
-const LAYER_LABELS = { infrastructure:"基础设施层", implementation:"实现层", coordination:"协同层", design:"设计层", vision:"愿景层" };
+const LAYER_ORDER = ["vision","design","infrastructure","capability","coordination","ui"];
+const LAYER_LABELS = { vision:"愿景层", design:"设计层", infrastructure:"基础设施层", capability:"能力层", coordination:"协同层", ui:"用户界面层" };
 
 /* Status colors — harmonized with 红木/青瓦/朱墙 pagoda palette */
 const STATUS_COLORS = {
@@ -66,16 +66,16 @@ const MOCK = {
     { id:"c11", title:"E2E 测试联调", layer:"coordination", status:"overdue", effort:4, deps:[], assignee:"QA-A", risk:false, notes:"" },
     { id:"c14", title:"监控大盘联调", layer:"coordination", status:"in_progress", effort:3, deps:[], assignee:"SRE-B", risk:false, notes:"" },
 
-    { id:"i01", title:"YAML 解析器", layer:"implementation", status:"done", effort:6, deps:["f01"], assignee:"Dev-B", risk:false, notes:"" },
-    { id:"i02", title:"Runner 调度器", layer:"implementation", status:"in_progress", effort:8, deps:["f02"], assignee:"Dev-C", risk:false, notes:"" },
-    { id:"i03", title:"事件总线", layer:"implementation", status:"done", effort:5, deps:["f03"], assignee:"Dev-A", risk:false, notes:"" },
-    { id:"i04", title:"漏洞扫描引擎", layer:"implementation", status:"done", effort:4, deps:["f01"], assignee:"Sec", risk:false, notes:"" },
-    { id:"i06", title:"Redis 缓存层", layer:"implementation", status:"done", effort:3, deps:["f05"], assignee:"Dev-A", risk:false, notes:"" },
-    { id:"i07", title:"数据库 Migration", layer:"implementation", status:"in_progress", effort:4, deps:["f05"], assignee:"DBA", risk:false, notes:"" },
-    { id:"i09", title:"前端主框架", layer:"implementation", status:"in_progress", effort:7, deps:[], assignee:"FE-A", risk:false, notes:"" },
-    { id:"i13", title:"制品仓库", layer:"implementation", status:"overdue", effort:5, deps:["f01"], assignee:"Dev-E", risk:false, notes:"" },
-    { id:"i15", title:"通知服务", layer:"implementation", status:"in_progress", effort:4, deps:["f03"], assignee:"Dev-C", risk:false, notes:"" },
-    { id:"i17", title:"限流熔断", layer:"implementation", status:"done", effort:3, deps:["f03"], assignee:"Dev-B", risk:false, notes:"" },
+    { id:"i01", title:"YAML 解析器", layer:"capability", status:"done", effort:6, deps:["f01"], assignee:"Dev-B", risk:false, notes:"" },
+    { id:"i02", title:"Runner 调度器", layer:"capability", status:"in_progress", effort:8, deps:["f02"], assignee:"Dev-C", risk:false, notes:"" },
+    { id:"i03", title:"事件总线", layer:"capability", status:"done", effort:5, deps:["f03"], assignee:"Dev-A", risk:false, notes:"" },
+    { id:"i04", title:"漏洞扫描引擎", layer:"capability", status:"done", effort:4, deps:["f01"], assignee:"Sec", risk:false, notes:"" },
+    { id:"i06", title:"Redis 缓存层", layer:"capability", status:"done", effort:3, deps:["f05"], assignee:"Dev-A", risk:false, notes:"" },
+    { id:"i07", title:"数据库 Migration", layer:"capability", status:"in_progress", effort:4, deps:["f05"], assignee:"DBA", risk:false, notes:"" },
+    { id:"i09", title:"前端主框架", layer:"capability", status:"in_progress", effort:7, deps:[], assignee:"FE-A", risk:false, notes:"" },
+    { id:"i13", title:"制品仓库", layer:"capability", status:"overdue", effort:5, deps:["f01"], assignee:"Dev-E", risk:false, notes:"" },
+    { id:"i15", title:"通知服务", layer:"capability", status:"in_progress", effort:4, deps:["f03"], assignee:"Dev-C", risk:false, notes:"" },
+    { id:"i17", title:"限流熔断", layer:"capability", status:"done", effort:3, deps:["f03"], assignee:"Dev-B", risk:false, notes:"" },
 
     { id:"f01", title:"K8s 集群部署", layer:"infrastructure", status:"done", effort:6, deps:[], assignee:"SRE-A", risk:false, notes:"" },
     { id:"f02", title:"CI 基础镜像", layer:"infrastructure", status:"done", effort:4, deps:[], assignee:"SRE-A", risk:false, notes:"" },
@@ -91,37 +91,67 @@ const MOCK = {
   ],
 };
 
-/* Squarified Treemap */
+/* Horizontal Treemap — row-based layout, all bricks are wider than tall */
 function squarify(items, rect) {
   if (!items.length) return [];
   const total = items.reduce((s,it)=>s+it.effort,0);
   if (total===0) return items.map(it=>({...it,bx:rect.x,by:rect.y,bw:0,bh:0}));
+
   const sorted=[...items].sort((a,b)=>b.effort-a.effort);
-  const result=[];
-  let rem=[...sorted], area=rect.w*rect.h, remT=total;
-  let cx=rect.x,cy=rect.y,cw=rect.w,ch=rect.h;
-  while(rem.length){
-    const hz=cw>=ch, side=hz?ch:cw;
-    let row=[rem[0]];
-    const worst=r=>{
-      const rr=r.map(it=>(it.effort/remT)*area);
-      const sum=rr.reduce((a,b)=>a+b,0), w=sum/side;
-      let mx=0; for(const a of rr){const h=a/w;const ratio=Math.max(w/h,h/w);if(ratio>mx)mx=ratio;} return mx;
-    };
-    let i=1;
-    while(i<rem.length){const test=[...row,rem[i]];if(worst(test)<=worst(row)){row=test;i++;}else break;}
-    const rowE=row.reduce((s,it)=>s+it.effort,0);
-    const rowFrac=rowE/remT, rowSize=hz?cw*rowFrac:ch*rowFrac;
-    let off=0;
-    for(const it of row){
-      const frac=it.effort/rowE, len=side*frac;
-      if(hz)result.push({...it,bx:cx,by:cy+off,bw:rowSize,bh:len});
-      else result.push({...it,bx:cx+off,by:cy,bw:len,bh:rowSize});
-      off+=len;
+  const MAX_ROW_ASPECT = 2.2;
+  const MIN_BRICKS_PER_ROW = 2;
+
+  // Adaptive row height: each row tries to be ~2× wider than tall
+  const targetRowH = rect.w / MAX_ROW_ASPECT;
+  const rowH = Math.max(20, Math.min(targetRowH, rect.h / 3));
+
+  const result = [];
+  let cy = rect.y;
+  let rem = [...sorted];
+
+  while(rem.length > 0 && cy < rect.y + rect.h){
+    const availH = rect.y + rect.h - cy;
+    const curRowH = Math.min(rowH, availH);
+
+    const row = [];
+    let rowEffort = 0;
+    let i = 0;
+
+    while(i < rem.length){
+      const test = [...row, rem[i]];
+      const testEffort = rowEffort + rem[i].effort;
+      const simAspect = (testEffort / total) * rect.w / curRowH;
+      if(simAspect <= MAX_ROW_ASPECT || row.length < MIN_BRICKS_PER_ROW){
+        row.push(rem[i]);
+        rowEffort = testEffort;
+        i++;
+      }else break;
     }
-    if(hz){cx+=rowSize;cw-=rowSize;}else{cy+=rowSize;ch-=rowSize;}
-    area=cw*ch; rem=rem.slice(row.length); remT-=rowE;
+
+    let cx = rect.x;
+    for(const it of row){
+      const bw = (it.effort / rowEffort) * rect.w;
+      result.push({...it, bx:cx, by:cy, bw:bw, bh:curRowH});
+      cx += bw;
+    }
+
+    rem = rem.slice(row.length);
+    cy += curRowH;
   }
+
+  if(rem.length > 0){
+    const availH = rect.y + rect.h - cy;
+    if(availH > 10){
+      const curRowH = availH;
+      let cx = rect.x;
+      for(const it of rem){
+        const bw = (it.effort / total) * rect.w;
+        result.push({...it, bx:cx, by:cy, bw:bw, bh:curRowH});
+        cx += bw;
+      }
+    }
+  }
+
   return result;
 }
 
