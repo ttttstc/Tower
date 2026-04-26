@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<title>Tower · 事项编辑</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tower-theme.css"/>
+<style>
+.form-left{
+  position:absolute;left:42px;top:110px;width:252px;height:752px;z-index:5;
+}
+.form-left .tower-scroll-body{
+  display:flex;flex-direction:column;gap:14px;padding:38px 20px 24px;
+}
+.form-nav{
+  display:flex;flex-direction:column;gap:10px;
+}
+.form-nav button{
+  display:flex;align-items:center;gap:12px;height:54px;width:100%;
+  padding:0 16px;border-radius:14px;border:1px solid rgba(175,135,74,.28);
+  background:transparent;color:#4f3518;cursor:pointer;
+  font-family:"Noto Serif SC",serif;font-size:15px;font-weight:800;
+  transition:all .14s ease;
+}
+.form-nav button.active{
+  background:linear-gradient(180deg, rgba(181,131,56,.88), rgba(134,92,34,.88));
+  color:#fff1d2;box-shadow:0 10px 20px rgba(91,52,16,.18), inset 0 0 0 1px rgba(255,235,197,.16);
+}
+.form-nav button:hover{transform:translateX(4px)}
+.form-left .tower-painting{
+  position:static;width:132px;margin:10px auto 0;display:block;
+}
+
+.form-main{
+  position:absolute;left:314px;top:108px;width:1030px;height:760px;z-index:4;
+  border-radius:28px;padding:36px 36px 30px;
+}
+.form-main::before,
+.form-main::after{
+  content:"";position:absolute;top:-10px;bottom:-10px;width:24px;
+  background:linear-gradient(180deg,#b28f5c 0%,#7d5c34 10%,#d2b58a 22%,#87633c 50%,#cfb189 78%,#78552e 100%);
+  border:1px solid rgba(96,57,18,.35);border-radius:999px;
+  box-shadow:0 10px 20px rgba(0,0,0,.18);
+}
+.form-main::before{left:-16px}
+.form-main::after{right:-16px}
+.form-paper{
+  position:relative;z-index:2;height:100%;overflow:auto;padding-right:10px;
+}
+.form-header{
+  display:flex;justify-content:space-between;gap:18px;align-items:flex-start;
+}
+.form-header h2{
+  margin:0;font-family:"Noto Serif SC",serif;font-size:34px;font-weight:900;color:#3b2511;letter-spacing:.05em;
+}
+.form-header .meta{
+  margin-top:10px;color:#705534;font-size:14px;line-height:1.8;
+}
+.form-actions-top{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+
+.form-section{scroll-margin-top:18px}
+.dep-box{
+  padding:16px;border-radius:18px;
+}
+.dep-chips{
+  display:flex;flex-wrap:wrap;gap:8px;min-height:34px;margin-bottom:12px;
+}
+.dep-chip{
+  display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;
+  background:rgba(248,239,221,.7);border:1px solid rgba(184,141,76,.34);color:#684c28;font-size:12px;
+}
+.dep-chip button{
+  border:none;background:none;color:#a54526;cursor:pointer;font-size:14px;line-height:1;padding:0;
+}
+.hint-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;
+}
+.hint-card{
+  padding:16px 18px;border-radius:16px;
+}
+.hint-card h4{
+  margin:0 0 10px;font-family:"Noto Serif SC",serif;font-size:18px;color:#55361a;
+}
+.hint-card p{margin:0;color:#6a5030;font-size:13px;line-height:1.85}
+
+.form-side{
+  position:absolute;right:44px;top:110px;width:258px;height:752px;z-index:5;
+  display:flex;flex-direction:column;gap:14px;
+}
+.preview-card{padding:18px 16px 16px}
+.book-preview{
+  width:116px;height:188px;margin:18px auto 12px;
+  background:center/100% 100% no-repeat;
+  position:relative;filter:drop-shadow(0 12px 18px rgba(0,0,0,.22));
+}
+.book-preview .title{
+  position:absolute;top:18px;bottom:36px;left:28px;right:18px;
+  writing-mode:vertical-rl;text-orientation:mixed;
+  font-family:"Noto Serif SC",serif;font-size:15px;font-weight:800;line-height:1.1;color:#f8e7c4;
+  text-shadow:0 1px 4px rgba(0,0,0,.55);
+}
+.book-preview .pct{
+  position:absolute;left:50%;bottom:12px;transform:translateX(-50%);
+  font-family:Georgia,serif;font-size:18px;color:#f0cf77;
+}
+.preview-meta{
+  display:flex;flex-direction:column;gap:8px;margin-top:12px;
+}
+.preview-row{
+  display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#6b512f;
+  padding-bottom:8px;border-bottom:1px dashed rgba(185,141,78,.24);
+}
+.footer-actions{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding-top:18px;margin-top:20px;border-top:1px solid rgba(185,141,78,.28);
+}
+.footer-actions .right{
+  display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;
+}
+.danger-area{display:flex;gap:10px;align-items:center}
+</style>
+</head>
+<body class="tower-body">
+<div class="tower-stage tower-wood-bg">
+  <div class="tower-ambient">
+    <img class="tower-lantern left" src="./UX/resource/atoms/tassel.png" alt=""/>
+    <img class="tower-lantern right" src="./UX/resource/atoms/tassel.png" alt=""/>
+  </div>
+
+  <div class="tower-topbar">
+    <a class="tower-link-chip" id="backLink" href="./dashboard.html">← 返回上一页</a>
+    <div class="tower-title-plaque">
+      <img src="./UX/resource/atoms/title_plate_transparent.png" alt=""/>
+      <h1 id="pageTitle">事项编辑</h1>
+    </div>
+    <a class="tower-link-chip" id="detailLink" href="./dashboard.html">查看事项详情</a>
+  </div>
+
+  <aside class="tower-scroll form-left">
+    <div class="tower-scroll-body">
+      <div class="tower-mini-title">编辑索引</div>
+      <div class="form-nav" id="formNav"></div>
+      <img class="tower-painting" src="./UX/resource/atoms/pagoda_painting.png" alt=""/>
+    </div>
+  </aside>
+
+  <main class="tower-paper form-main">
+    <div class="form-paper" id="formPaper"></div>
+  </main>
+
+  <aside class="form-side" id="formSide"></aside>
+</div>
+<div class="tower-hud">Ctrl+S 保存</div>
+
+<script type="module">
+import { Store, LAYERS, STATUSES, layerOf } from './js/store.js';
+import { openModal, toast, confirm, el } from './js/ui.js';
+
+const STAGE_W = 1672;
+const STAGE_H = 941;
+const BOOK_IMAGES = {
+  done: './UX/resource/dashboard/books/book-done-a.png',
+  in_progress: './UX/resource/dashboard/books/book-progress.png',
+  overdue: './UX/resource/dashboard/books/book-progress.png',
+  blocked: './UX/resource/dashboard/books/book-blocked.png',
+  not_started: './UX/resource/dashboard/books/book-locked.png',
+};
+const STATUS_TEXT = { done: '已完成', in_progress: '进行中', overdue: '延期', blocked: '阻塞', not_started: '未开始' };
+const STATUS_PROGRESS = { done: 100, in_progress: 60, overdue: 40, blocked: 25, not_started: 0 };
+const NAV_SECTIONS = [
+  { id: 'basic', icon: '📜', label: '基本信息' },
+  { id: 'advance', icon: '⏳', label: '推进设定' },
+  { id: 'deps', icon: '🕸', label: '依赖关系' },
+  { id: 'notes', icon: '📝', label: '说明备注' },
+];
+
+function resize() {
+  const scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+  document.documentElement.style.setProperty('--scale', scale);
+}
+window.addEventListener('resize', resize);
+resize();
+
+const params = new URLSearchParams(location.search);
+const itemId = params.get('id');
+const original = itemId ? Store.getItem(itemId) : null;
+const isEdit = !!original;
+
+const draft = isEdit ? JSON.parse(JSON.stringify(original)) : {
+  title: '',
+  layer: 'implementation',
+  status: 'not_started',
+  progress: 0,
+  effort: 3,
+  dependencies: [],
+  assignee: Store.project.owners[0] || '',
+  risk: false,
+  notes: '',
+};
+
+if (draft.progress == null) {
+  draft.progress = STATUS_PROGRESS[draft.status] ?? 0;
+}
+if (draft.risk) draft.status = 'blocked';
+
+document.getElementById('pageTitle').textContent = isEdit ? '事项编辑' : '新增事项';
+document.getElementById('detailLink').href = isEdit ? `./detail.html?id=${encodeURIComponent(original.id)}` : './dashboard.html';
+document.getElementById('detailLink').textContent = isEdit ? '查看事项详情' : '返回事项大盘';
+document.getElementById('backLink').href = isEdit ? `./detail.html?id=${encodeURIComponent(original.id)}` : './dashboard.html';
+
+function statusBadgeClass(status) {
+  if (status === 'in_progress') return 'in-progress';
+  return status.replace('_', '-');
+}
+function pctOf(target) {
+  const value = target.progress;
+  if (typeof value === 'number' && !Number.isNaN(value)) return Math.max(0, Math.min(100, Math.round(value)));
+  return STATUS_PROGRESS[target.status] ?? 0;
+}
+function applyProgressToStatus(value) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  draft.progress = pct;
+  if (draft.risk) {
+    draft.status = 'blocked';
+    return;
+  }
+  if (pct === 100) draft.status = 'done';
+  else if (pct >= 1) draft.status = 'in_progress';
+  else draft.status = 'not_started';
+}
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+function renderNav() {
+  const nav = document.getElementById('formNav');
+  nav.innerHTML = NAV_SECTIONS.map((section, index) => `
+    <button type="button" data-target="${section.id}" class="${index === 0 ? 'active' : ''}">
+      <span>${section.icon}</span><span>${section.label}</span>
+    </button>
+  `).join('');
+}
+
+function renderPage() {
+  const paper = document.getElementById('formPaper');
+  paper.innerHTML = `
+    <section class="form-header">
+      <div>
+        <h2>${isEdit ? escapeHtml(draft.title || '未命名事项') : '新增事项'}</h2>
+        <div class="meta">
+          ${escapeHtml(layerOf(draft.layer)?.name || draft.layer)} / ${escapeHtml(draft.assignee || '未分配')} / ${draft.effort} 人天 / 当前进度 ${pctOf(draft)}%
+        </div>
+      </div>
+      <div class="form-actions-top">
+        <span class="tower-badge ${statusBadgeClass(draft.status)}">${STATUS_TEXT[draft.status]}</span>
+        <button class="tower-btn ghost" type="button" id="jumpDetailTop">${isEdit ? '查看详情页' : '返回大盘'}</button>
+      </div>
+    </section>
+
+    <div class="tower-divider"></div>
+
+    <section class="form-section" id="basic" data-anchor>
+      <div class="tower-section-title">基本信息</div>
+      <div style="height:16px"></div>
+      <div class="tower-form-grid">
+        <div class="tower-field">
+          <label>事项名称 *</label>
+          <input class="tower-input" id="fieldTitle" placeholder="请输入事项名称" value="${escapeHtml(draft.title)}"/>
+        </div>
+        <div class="tower-field">
+          <label>所属层级 *</label>
+          <select class="tower-select" id="fieldLayer">
+            ${LAYERS.map((layer) => `<option value="${layer.key}" ${draft.layer === layer.key ? 'selected' : ''}>${layer.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="tower-field">
+          <label>负责人</label>
+          <select class="tower-select" id="fieldOwner">
+            <option value="">未分配</option>
+            ${Store.project.owners.map((owner) => `<option value="${escapeHtml(owner)}" ${draft.assignee === owner ? 'selected' : ''}>${escapeHtml(owner)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="tower-field">
+          <label>工作量</label>
+          <input class="tower-input" id="fieldEffort" type="number" min="1" max="20" value="${draft.effort}"/>
+        </div>
+      </div>
+    </section>
+
+    <div class="tower-divider"></div>
+
+    <section class="form-section" id="advance" data-anchor>
+      <div class="tower-section-title">推进设定</div>
+      <div style="height:16px"></div>
+      <div class="tower-form-grid">
+        <div class="tower-field">
+          <label>状态</label>
+          <select class="tower-select" id="fieldStatus">
+            ${STATUSES.map((status) => `<option value="${status.key}" ${draft.status === status.key ? 'selected' : ''}>${status.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="tower-field">
+          <label>风险标记</label>
+          <select class="tower-select" id="fieldRisk">
+            <option value="false" ${!draft.risk ? 'selected' : ''}>正常推进</option>
+            <option value="true" ${draft.risk ? 'selected' : ''}>风险事项</option>
+          </select>
+        </div>
+        <div class="tower-field" style="grid-column:1 / -1">
+          <label>进度</label>
+          <div class="tower-progress">
+            <input id="fieldProgress" type="range" min="0" max="100" step="5" value="${pctOf(draft)}"/>
+            <span class="value" id="progressValue">${pctOf(draft)}%</span>
+          </div>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+      <div class="tower-status-grid" id="statusGrid">
+        ${STATUSES.map((status) => `<div class="tower-badge ${statusBadgeClass(status.key)}" data-status="${status.key}">${status.name}</div>`).join('')}
+      </div>
+    </section>
+
+    <div class="tower-divider"></div>
+
+    <section class="form-section" id="deps" data-anchor>
+      <div class="tower-section-title">依赖关系</div>
+      <div style="height:16px"></div>
+      <div class="tower-paper-card dep-box">
+        <div class="dep-chips" id="depChips"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="tower-btn ghost" type="button" id="pickDepsBtn">选择依赖事项</button>
+          <button class="tower-btn secondary" type="button" id="clearDepsBtn">清空依赖</button>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+      <div class="hint-grid">
+        <div class="tower-paper-card hint-card">
+          <h4>依赖提示</h4>
+          <p>当前依赖会在事项大盘中绘制为连接关系，也会在详情页的“依赖关系”章节中同步展示。</p>
+        </div>
+        <div class="tower-paper-card hint-card">
+          <h4>协同建议</h4>
+          <p>建议只登记真正阻塞当前事项的上游任务，避免把并行事项全部挂成依赖，导致塔面过度缠绕。</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="tower-divider"></div>
+
+    <section class="form-section" id="notes" data-anchor>
+      <div class="tower-section-title">说明备注</div>
+      <div style="height:16px"></div>
+      <div class="tower-field">
+        <label>事项说明</label>
+        <textarea class="tower-textarea" id="fieldNotes" placeholder="补充业务背景、接口说明、推进约束或验收标准">${escapeHtml(draft.notes || '')}</textarea>
+      </div>
+      <div style="height:16px"></div>
+      <div class="tower-meta">
+        ${isEdit ? `创建：${new Date(original.createdAt).toLocaleString('zh-CN')}<br/>最近更新：${new Date(original.updatedAt).toLocaleString('zh-CN')}` : '保存后会自动写入创建时间与更新时间。'}
+      </div>
+    </section>
+
+    <div class="footer-actions">
+      <div class="danger-area">
+        ${isEdit ? '<button class="tower-btn danger" type="button" id="deleteBtn">删除事项</button>' : ''}
+      </div>
+      <div class="right">
+        <button class="tower-btn ghost" type="button" id="cancelBtn">取消</button>
+        <button class="tower-btn secondary" type="button" id="saveStayBtn">${isEdit ? '保存' : '创建'}</button>
+        <button class="tower-btn primary" type="button" id="saveViewBtn">${isEdit ? '保存并查看详情' : '创建并查看详情'}</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('fieldTitle').oninput = (event) => { draft.title = event.target.value; renderSide(); };
+  document.getElementById('fieldLayer').onchange = (event) => { draft.layer = event.target.value; renderSide(); };
+  document.getElementById('fieldOwner').onchange = (event) => { draft.assignee = event.target.value; renderSide(); };
+  document.getElementById('fieldEffort').oninput = (event) => {
+    draft.effort = Math.max(1, Math.min(20, parseInt(event.target.value, 10) || 1));
+    event.target.value = draft.effort;
+    renderSide();
+  };
+  document.getElementById('fieldStatus').onchange = (event) => {
+    draft.status = event.target.value;
+    if (draft.status === 'done') draft.progress = 100;
+    if (draft.status === 'not_started') draft.progress = 0;
+    if (draft.status === 'blocked' && !draft.risk) draft.progress = Math.min(Math.max(draft.progress, 5), 60);
+    document.getElementById('fieldProgress').value = pctOf(draft);
+    document.getElementById('progressValue').textContent = `${pctOf(draft)}%`;
+    renderPage();
+    renderSide();
+    renderNavState();
+  };
+  document.getElementById('fieldRisk').onchange = (event) => {
+    draft.risk = event.target.value === 'true';
+    if (draft.risk) draft.status = 'blocked';
+    else applyProgressToStatus(pctOf(draft));
+    renderPage();
+    renderSide();
+    renderNavState();
+  };
+  document.getElementById('fieldProgress').oninput = (event) => {
+    applyProgressToStatus(parseInt(event.target.value, 10) || 0);
+    document.getElementById('progressValue').textContent = `${pctOf(draft)}%`;
+    document.getElementById('fieldStatus').value = draft.status;
+    renderSide();
+    renderStatusGrid();
+  };
+  document.getElementById('fieldNotes').oninput = (event) => { draft.notes = event.target.value; };
+  document.getElementById('pickDepsBtn').onclick = openDependencyPicker;
+  document.getElementById('clearDepsBtn').onclick = () => { draft.dependencies = []; renderDepChips(); renderSide(); };
+  document.getElementById('cancelBtn').onclick = () => history.length > 1 ? history.back() : location.assign('./dashboard.html');
+  document.getElementById('saveStayBtn').onclick = () => save(false);
+  document.getElementById('saveViewBtn').onclick = () => save(true);
+  document.getElementById('jumpDetailTop').onclick = () => {
+    location.href = isEdit ? `./detail.html?id=${encodeURIComponent(original.id)}` : './dashboard.html';
+  };
+
+  if (isEdit) {
+    document.getElementById('deleteBtn').onclick = async () => {
+      const ok = await confirm({ title: '删除事项', message: `确认删除「${draft.title}」？删除后无法恢复。`, okText: '删除', danger: true });
+      if (!ok) return;
+      Store.removeItem(original.id);
+      toast('事项已删除', { type: 'success' });
+      location.href = './dashboard.html';
+    };
+  }
+
+  renderDepChips();
+  renderStatusGrid();
+}
+
+function renderStatusGrid() {
+  const grid = document.getElementById('statusGrid');
+  if (!grid) return;
+  [...grid.children].forEach((badge) => {
+    badge.style.opacity = draft.risk && badge.dataset.status !== 'blocked' ? '0.45' : '1';
+    badge.style.outline = badge.dataset.status === draft.status ? '2px solid rgba(255,234,189,.72)' : 'none';
+    badge.onclick = () => {
+      if (draft.risk && badge.dataset.status !== 'blocked') return;
+      draft.status = badge.dataset.status;
+      if (draft.status === 'done') draft.progress = 100;
+      if (draft.status === 'not_started') draft.progress = 0;
+      if (draft.status === 'blocked') draft.progress = Math.max(5, Math.min(60, draft.progress || 25));
+      const statusField = document.getElementById('fieldStatus');
+      const progressField = document.getElementById('fieldProgress');
+      const progressValue = document.getElementById('progressValue');
+      if (statusField) statusField.value = draft.status;
+      if (progressField) progressField.value = pctOf(draft);
+      if (progressValue) progressValue.textContent = `${pctOf(draft)}%`;
+      renderStatusGrid();
+      renderSide();
+    };
+  });
+}
+
+function renderDepChips() {
+  const chips = document.getElementById('depChips');
+  if (!chips) return;
+  const entries = (draft.dependencies || []).map((depId) => Store.getItem(depId)).filter(Boolean);
+  if (!entries.length) {
+    chips.innerHTML = '<span class="tower-chip">暂未绑定依赖事项</span>';
+    return;
+  }
+  chips.innerHTML = entries.map((entry) => `
+    <span class="dep-chip">${escapeHtml(entry.title)}<button type="button" data-remove="${entry.id}">×</button></span>
+  `).join('');
+  chips.querySelectorAll('button').forEach((button) => {
+    button.onclick = () => {
+      draft.dependencies = draft.dependencies.filter((depId) => depId !== button.dataset.remove);
+      renderDepChips();
+      renderSide();
+    };
+  });
+}
+
+function renderSide() {
+  const layer = layerOf(draft.layer);
+  const side = document.getElementById('formSide');
+  side.innerHTML = `
+    <section class="tower-paper tower-side-card preview-card">
+      <div class="tower-mini-title">书脊预览</div>
+      <div class="book-preview" id="bookPreview" style="background-image:url('${BOOK_IMAGES[draft.status]}')">
+        <div class="title">${escapeHtml(draft.title || '新事项')}</div>
+        <div class="pct">${pctOf(draft)}%</div>
+      </div>
+      <div class="preview-meta">
+        <div class="preview-row"><span>所属层级</span><strong>${escapeHtml(layer?.name || draft.layer)}</strong></div>
+        <div class="preview-row"><span>负责人</span><strong>${escapeHtml(draft.assignee || '未分配')}</strong></div>
+        <div class="preview-row"><span>当前状态</span><strong>${escapeHtml(STATUS_TEXT[draft.status])}</strong></div>
+        <div class="preview-row"><span>依赖数量</span><strong>${draft.dependencies?.length || 0}</strong></div>
+      </div>
+    </section>
+
+    <section class="tower-paper tower-side-card">
+      <div class="tower-mini-title">编辑建议</div>
+      <div class="tower-meta" style="margin-top:10px">
+        ${draft.risk ? '当前事项已标记风险，建议在说明中补充阻塞原因与解除条件。' : '如需更准确的大盘观感，建议同步补充说明、负责人与依赖关系。'}<br/><br/>
+        当进度滑杆拉到 100% 时会自动切换为“已完成”，拉到 0% 时会回到“未开始”。
+      </div>
+    </section>
+  `;
+}
+
+function renderNavState() {
+  const paper = document.getElementById('formPaper');
+  const buttons = [...document.querySelectorAll('#formNav button')];
+  const anchors = [...paper.querySelectorAll('[data-anchor]')];
+
+  function sync() {
+    const top = paper.scrollTop + 40;
+    let activeId = anchors[0]?.id;
+    anchors.forEach((anchor) => {
+      if (anchor.offsetTop <= top) activeId = anchor.id;
+    });
+    buttons.forEach((button) => button.classList.toggle('active', button.dataset.target === activeId));
+  }
+
+  buttons.forEach((button) => {
+    button.onclick = () => {
+      const target = document.getElementById(button.dataset.target);
+      if (!target) return;
+      paper.scrollTo({ top: target.offsetTop - 14, behavior: 'smooth' });
+      sync();
+    };
+  });
+  paper.onscroll = sync;
+  sync();
+}
+
+function openDependencyPicker() {
+  openModal({
+    title: '选择依赖事项',
+    width: 680,
+    render: (body, { close }) => {
+      const search = el('input', { class: 'tower-input', placeholder: '按事项标题搜索' });
+      const info = el('div', { class: 'tower-meta', style: { marginTop: '10px', marginBottom: '10px' } }, '仅展示除当前事项之外的项目项。');
+      const list = el('div', { style: { maxHeight: '420px', overflowY: 'auto', borderRadius: '14px', border: '1px solid rgba(184,141,76,.28)', background: 'rgba(255,252,245,.62)', padding: '8px 0' } });
+      body.appendChild(search);
+      body.appendChild(info);
+      body.appendChild(list);
+
+      function paint() {
+        const keyword = search.value.trim().toLowerCase();
+        list.innerHTML = '';
+        LAYERS.forEach((layer) => {
+          const items = Store.itemsByLayer(layer.key)
+            .filter((entry) => entry.id !== itemId)
+            .filter((entry) => !keyword || entry.title.toLowerCase().includes(keyword));
+          if (!items.length) return;
+          const head = el('div', { style: { padding: '10px 18px 6px', fontFamily: '"Noto Serif SC",serif', fontWeight: '700', color: '#6c4f28' } }, layer.name);
+          list.appendChild(head);
+          items.forEach((entry) => {
+            const row = el('label', { style: { display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 18px', cursor: 'pointer', color: '#5b401d', fontSize: '13px' } });
+            const cb = el('input', { type: 'checkbox' });
+            cb.checked = draft.dependencies.includes(entry.id);
+            const cycle = itemId ? Store.wouldCycle(itemId, entry.id) : false;
+            cb.disabled = cycle;
+            cb.onchange = () => {
+              if (cb.checked) {
+                if (!draft.dependencies.includes(entry.id)) draft.dependencies.push(entry.id);
+              } else {
+                draft.dependencies = draft.dependencies.filter((depId) => depId !== entry.id);
+              }
+            };
+            row.appendChild(cb);
+            row.appendChild(el('span', { style: { flex: '1' } }, `${entry.title} · ${STATUS_TEXT[entry.status]}`));
+            row.appendChild(el('span', { style: { color: cycle ? '#aa4b2d' : '#7a603d', fontSize: '12px' } }, cycle ? '会成环' : `${pctOf(entry)}%`));
+            list.appendChild(row);
+          });
+        });
+      }
+
+      search.oninput = paint;
+      paint();
+
+      const footer = el('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' } });
+      const cancel = el('button', { class: 'tower-btn ghost', type: 'button' }, '关闭');
+      const ok = el('button', { class: 'tower-btn primary', type: 'button' }, '应用依赖');
+      cancel.onclick = close;
+      ok.onclick = () => {
+        renderDepChips();
+        renderSide();
+        close();
+      };
+      footer.appendChild(cancel);
+      footer.appendChild(ok);
+      body.appendChild(footer);
+    },
+  });
+}
+
+function validateDraft() {
+  if (!draft.title.trim()) {
+    toast('事项名称不能为空', { type: 'error' });
+    return false;
+  }
+  return true;
+}
+
+function save(openDetail) {
+  if (!validateDraft()) return;
+  draft.title = draft.title.trim();
+  draft.notes = draft.notes || '';
+  draft.progress = pctOf(draft);
+  if (draft.risk) draft.status = 'blocked';
+
+  let saved;
+  if (isEdit) {
+    saved = Store.updateItem(original.id, draft);
+    toast('事项已保存', { type: 'success' });
+  } else {
+    saved = Store.addItem(draft);
+    toast('事项已创建', { type: 'success' });
+  }
+
+  if (openDetail) {
+    location.href = `./detail.html?id=${encodeURIComponent(saved.id)}`;
+    return;
+  }
+  if (!isEdit) {
+    location.href = './dashboard.html';
+    return;
+  }
+  renderPage();
+  renderSide();
+  renderNavState();
+}
+
+renderNav();
+renderPage();
+renderSide();
+renderNavState();
+
+window.addEventListener('keydown', (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+    event.preventDefault();
+    save(false);
+  }
+});
+</script>
+</body>
+</html>

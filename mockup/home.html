@@ -2,8 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<title>Tower · 项目主页</title>
+<title>Tower · 主页 (Mockup)</title>
 <style>
+  /* === 设计稿基准 1672 x 941，整页等比缩放 === */
   :root {
     --design-w: 1672;
     --design-h: 941;
@@ -17,6 +18,7 @@
     overflow: hidden;
   }
 
+  /* 舞台：以设计稿原始像素绘制，再用 transform 缩放到视口 */
   .stage {
     position: absolute;
     top: 50%; left: 50%;
@@ -26,6 +28,7 @@
     transform-origin: center center;
   }
 
+  /* 调试：显示参考图（按 D 切换） */
   .ref {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
@@ -35,6 +38,7 @@
   }
   body.show-ref .ref { opacity: 0.45; }
 
+  /* === 第 1 层：背景贴图（塔 + 山水） === */
   .layer-bg {
     position: absolute; top: 0; left: 0;
     width: 1672px; height: 941px;
@@ -44,6 +48,8 @@
     -webkit-user-drag: none;
   }
 
+  /* === 第 2 层：左侧信息面板（半透明卡片，压在背景上） === */
+  /* 主页参考图里左侧约 28~318px 横向、56~880px 纵向 */
   .panel-left {
     position: absolute;
     left: 0; top: 0;
@@ -71,6 +77,21 @@
     border-bottom: 1px solid rgba(181, 168, 142, 0.4);
     padding-bottom: 4px; margin-bottom: 4px;
   }
+  .goal-item {
+    display: flex; gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(181, 168, 142, 0.3);
+    border-radius: 3px;
+  }
+  .goal-item .icon {
+    width: 22px; height: 22px; flex-shrink: 0;
+    background: #c9a832; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px; font-weight: 700;
+  }
+  .goal-item .text strong { color: #3d3528; font-size: 11.5px; }
+  .goal-item .text p { font-size: 10px; color: #7a6e5d; margin: 2px 0 0; }
 
   .nav-item {
     padding: 6px 0;
@@ -80,9 +101,11 @@
   }
   .nav-item:hover { color: #c17832; }
 
+  /* === 第 3 层：6 楼层热区 + 标签卡片（右侧） === */
   .floors {
     position: absolute; inset: 0; pointer-events: none;
   }
+  /* 楼层热区——叠在塔身上，hover 时高亮 */
   .floor-hit {
     position: absolute;
     pointer-events: auto;
@@ -90,12 +113,14 @@
     transition: background 180ms;
   }
   .floor-hit:hover { background: rgba(201, 168, 50, 0.18); }
-  .floor-hit[data-floor="1"] { left: 870px; top: 130px; width: 220px; height: 95px; }
-  .floor-hit[data-floor="2"] { left: 850px; top: 235px; width: 260px; height: 110px; }
-  .floor-hit[data-floor="3"] { left: 825px; top: 355px; width: 305px; height: 115px; }
-  .floor-hit[data-floor="4"] { left: 800px; top: 480px; width: 350px; height: 120px; }
-  .floor-hit[data-floor="5"] { left: 770px; top: 610px; width: 410px; height: 140px; }
+  /* 6 个热区的位置（基于参考图目测，需要后续微调） */
+  .floor-hit[data-floor="1"] { left: 870px; top: 130px; width: 220px; height: 95px; }   /* 愿景层（塔顶） */
+  .floor-hit[data-floor="2"] { left: 850px; top: 235px; width: 260px; height: 110px; }  /* 设计层 */
+  .floor-hit[data-floor="3"] { left: 825px; top: 355px; width: 305px; height: 115px; }  /* 协同层 */
+  .floor-hit[data-floor="4"] { left: 800px; top: 480px; width: 350px; height: 120px; }  /* 实现层 */
+  .floor-hit[data-floor="5"] { left: 770px; top: 610px; width: 410px; height: 140px; }  /* 基础设施层（底层） */
 
+  /* 右侧标签卡片 */
   .floor-tag {
     position: absolute;
     width: 220px;
@@ -127,12 +152,15 @@
   .floor-tag .bar > i {
     display: block; height: 100%; background: linear-gradient(90deg, #8a9a5e, #6b7c4e);
   }
+
+  /* 5 个标签的位置（右侧自上而下） */
   .floor-tag[data-floor="1"] { left: 1380px; top: 150px; }
   .floor-tag[data-floor="2"] { left: 1380px; top: 270px; }
   .floor-tag[data-floor="3"] { left: 1380px; top: 390px; }
   .floor-tag[data-floor="4"] { left: 1380px; top: 510px; }
   .floor-tag[data-floor="5"] { left: 1380px; top: 630px; }
 
+  /* === 第 4 层：右上整体进度 === */
   .overall {
     position: absolute;
     right: 32px; top: 28px;
@@ -152,6 +180,7 @@
   }
   .overall .meta { font-size: 9px; color: #9a8e7a; margin-top: 6px; clear: both; }
 
+  /* === 第 5 层：右下"进入事项大盘"按钮 === */
   .enter-btn {
     position: absolute;
     right: 32px; top: 280px;
@@ -166,6 +195,7 @@
   }
   .enter-btn:hover { background: #5e6e43; }
 
+  /* 调试网格（按 G 切换） */
   .grid {
     position: absolute; inset: 0; pointer-events: none;
     background-image:
@@ -176,6 +206,7 @@
   }
   body.show-grid .grid { opacity: 1; }
 
+  /* 调试提示 */
   .hud {
     position: fixed; left: 8px; bottom: 8px;
     color: rgba(255,255,255,0.5);
@@ -186,8 +217,10 @@
 </head>
 <body>
   <div class="stage" id="stage">
-    <img class="layer-bg" src="./mockup/assets/bg/home-bg.png" alt="" />
+    <!-- 背景贴图 -->
+    <img class="layer-bg" src="./assets/bg/home-bg.png" alt="" />
 
+    <!-- 楼层热区 + 标签 -->
     <div class="floors">
       <div class="floor-hit" data-floor="1" title="愿景层"></div>
       <div class="floor-hit" data-floor="2" title="设计层"></div>
@@ -222,6 +255,7 @@
       </div>
     </div>
 
+    <!-- 左侧信息面板 -->
     <aside class="panel-left">
       <div>
         <h1 id="projName">—</h1>
@@ -251,24 +285,28 @@
       </div>
     </aside>
 
+    <!-- 右上整体进度 -->
     <div class="overall" style="cursor:pointer" id="overallBox">
       <div class="pct" id="overallPct">—</div>
       <div class="label">整体进度</div>
       <div class="meta" id="overallMeta">—</div>
     </div>
 
+    <!-- 进入事项大盘 -->
     <button class="enter-btn" id="enterBtn">进入事项大盘 →</button>
 
-    <img class="ref" alt="参考" />
+    <!-- 调试参考图 / 网格 -->
+    <img class="ref"  alt="参考" />
     <div class="grid"></div>
   </div>
 
   <div class="hud">D=对照参考图  G=网格  +/-=缩放</div>
 
 <script type="module">
-  import { Store, LAYERS } from './js/store.js';
-  import { openDrawer, openModal, toast, confirm } from './js/ui.js';
+  import { Store, LAYERS } from '../js/store.js';
+  import { openDrawer, openModal, toast, confirm } from '../js/ui.js';
 
+  // 等比缩放
   function resize() {
     const sw = 1672, sh = 941;
     const vw = window.innerWidth, vh = window.innerHeight;
@@ -277,11 +315,13 @@
   }
   window.addEventListener('resize', resize); resize();
 
+  // 调试快捷键
   document.addEventListener('keydown', (e) => {
     if (e.key === 'd' || e.key === 'D') document.body.classList.toggle('show-ref');
     if (e.key === 'g' || e.key === 'G') document.body.classList.toggle('show-grid');
   });
 
+  // 楼层联动 hover（floor-hit 与 floor-tag 互动）
   document.querySelectorAll('.floor-hit, .floor-tag').forEach(el => {
     el.addEventListener('mouseenter', () => {
       const f = el.dataset.floor;
@@ -290,13 +330,15 @@
     el.addEventListener('mouseleave', () => {
       document.querySelectorAll('.active').forEach(x => x.classList.remove('active'));
     });
+    // 点击 floor 跳转 dashboard 并锚定该层
     el.addEventListener('click', () => {
       const layer = el.dataset.layer || el.closest('[data-layer]')?.dataset.layer
-        || LAYERS[(parseInt(el.dataset.floor, 10) - 1) || 0]?.key;
-      location.href = `./dashboard.html${layer ? `?layer=${layer}` : ''}`;
+        || LAYERS[(parseInt(el.dataset.floor) - 1) || 0]?.key;
+      location.href = `../dashboard.html${layer ? `?layer=${layer}` : ''}`;
     });
   });
 
+  // ---------- 渲染真实数据 ----------
   function render() {
     const p = Store.project;
     document.getElementById('projName').textContent = p.name;
@@ -311,6 +353,7 @@
       ? `当前数据文件：${Store.boundFileName()}`
       : (Store.fileSystemSupported() ? '当前正在使用浏览器本地草稿，可随时保存为 tower.json' : '当前正在使用浏览器本地草稿，浏览器仅支持下载 JSON 副本');
 
+    // 5 个 floor-tag 按 layer 填充
     document.querySelectorAll('.floor-tag').forEach(tag => {
       const layer = tag.dataset.layer;
       const lp = Store.layerProgress(layer);
@@ -318,6 +361,7 @@
       tag.querySelector('.bar > i').style.width = lp.pct + '%';
     });
 
+    // 楼段一览
     const list = document.getElementById('layerList');
     list.innerHTML = '';
     LAYERS.forEach(L => {
@@ -325,19 +369,20 @@
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;justify-content:space-between;padding:4px 6px;border-bottom:1px dashed rgba(181,168,142,0.3);cursor:pointer';
       row.innerHTML = `<span>${L.name}</span><span style="color:#7a6e5d">${lp.count} 项 · ${lp.pct}%</span>`;
-      row.onclick = () => location.href = `./dashboard.html?layer=${L.key}`;
+      row.onclick = () => location.href = `../dashboard.html?layer=${L.key}`;
       list.appendChild(row);
     });
   }
 
-  document.getElementById('enterBtn').onclick = () => location.href = './dashboard.html';
-  document.getElementById('navDashboard').onclick = () => location.href = './dashboard.html';
-  document.getElementById('overallBox').onclick = () => location.href = './dashboard.html';
+  // ---------- 顶部操作 ----------
+  document.getElementById('enterBtn').onclick = () => location.href = '../dashboard.html';
+  document.getElementById('navDashboard').onclick = () => location.href = '../dashboard.html';
+  document.getElementById('overallBox').onclick = () => location.href = '../dashboard.html';
 
   document.getElementById('navAdd').onclick = () => {
-    location.href = './item-form.html';
+    location.href = '../dashboard.html?action=add';
   };
-  document.getElementById('navImport').onclick = () => location.href = './mockup/import.html';
+  document.getElementById('navImport').onclick = () => location.href = './import.html';
   document.getElementById('navOpenJson').onclick = async () => {
     try {
       const loaded = await Store.openProjectFile();
