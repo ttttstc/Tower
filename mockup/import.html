@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<title>Tower · Excel 导入</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../tower-theme.css"/>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+body{overflow:hidden}
+.import-left{
+  position:absolute;left:42px;top:108px;width:236px;height:758px;z-index:5;
+}
+.import-left .tower-scroll-body{
+  display:flex;flex-direction:column;height:100%;padding:42px 20px 24px;
+}
+.import-step-shell{display:flex;flex-direction:column;gap:10px}
+.import-step-shell .tower-step{cursor:pointer}
+.import-left .tower-painting{
+  position:static;width:128px;margin:18px auto 0;display:block;opacity:.72;
+}
+
+.import-main{
+  position:absolute;left:302px;top:108px;width:1038px;height:760px;z-index:4;
+  border-radius:28px;padding:36px 36px 28px;
+}
+.import-main::before,
+.import-main::after{
+  content:"";position:absolute;top:-10px;bottom:-10px;width:24px;
+  background:linear-gradient(180deg,#b28f5c 0%,#7d5c34 10%,#d2b58a 22%,#87633c 50%,#cfb189 78%,#78552e 100%);
+  border:1px solid rgba(96,57,18,.35);border-radius:999px;box-shadow:0 10px 20px rgba(0,0,0,.18);
+}
+.import-main::before{left:-16px}
+.import-main::after{right:-16px}
+.import-paper{
+  position:relative;z-index:2;height:100%;overflow:auto;padding-right:10px;
+}
+.import-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+}
+.import-head h2{
+  margin:0;font-family:"Noto Serif SC",serif;font-size:34px;font-weight:900;color:#3b2511;letter-spacing:.05em;
+}
+.import-head .meta{
+  margin-top:10px;color:#705534;font-size:14px;line-height:1.8;
+}
+.helper-grid{
+  position:absolute;right:42px;top:110px;width:250px;height:756px;z-index:5;
+  display:flex;flex-direction:column;gap:14px;
+}
+.helper-card{padding:16px 16px 14px}
+.helper-card h4{
+  margin:0 0 10px;font-family:"Noto Serif SC",serif;font-size:18px;color:#55361a;
+}
+.helper-card p,.helper-card li{margin:0;color:#6a5030;font-size:13px;line-height:1.78}
+.helper-card ul{margin:0;padding-left:18px}
+
+.dropzone{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:280px;border-radius:24px;border:2px dashed rgba(183,136,67,.44);
+  background:rgba(255,251,242,.52);cursor:pointer;transition:all .14s ease;
+  text-align:center;color:#7a5c30;
+}
+.dropzone:hover,.dropzone.drag{background:rgba(255,248,234,.78);border-color:rgba(183,136,67,.7)}
+.dropzone .big{font-size:66px;line-height:1;color:#b78534}
+.dropzone .title{margin-top:12px;font-family:"Noto Serif SC",serif;font-size:22px;font-weight:800;color:#5f411f}
+.dropzone .sub{margin-top:6px;font-size:14px}
+.ghost-line{
+  margin-top:16px;padding:14px 18px;border-radius:16px;
+  background:rgba(255,249,238,.55);border:1px solid rgba(184,141,76,.28);color:#75592f;font-size:13px;
+}
+
+.mapping-grid{
+  display:grid;grid-template-columns:1.08fr 72px 1.02fr .7fr;gap:10px;align-items:center;
+}
+.mapping-head,.mapping-row{
+  display:grid;grid-template-columns:1.08fr 72px 1.02fr .7fr;gap:10px;align-items:center;
+}
+.mapping-head{
+  padding:0 14px 8px;color:#74572f;font-size:12px;font-weight:700;
+}
+.mapping-row{
+  padding:12px 14px;border-top:1px solid rgba(184,141,76,.18);color:#53371a;font-size:13px;
+}
+.mapping-arrow{text-align:center;font-size:28px;color:#9f7133}
+.mapping-status{
+  display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;
+  border:1px solid rgba(184,141,76,.28);font-size:12px;
+}
+.mapping-status.ok{background:rgba(92,117,59,.14);color:#4f6637}
+.mapping-status.warn{background:rgba(183,120,32,.12);color:#8e5b17}
+.mapping-status.bad{background:rgba(178,75,45,.12);color:#a14729}
+
+.preview-wrap{max-height:402px;overflow:auto;border-radius:18px;border:1px solid rgba(184,141,76,.28);background:rgba(255,252,245,.56)}
+.summary{
+  display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;
+}
+.summary .tower-chip{font-size:13px}
+.actions{
+  display:flex;justify-content:space-between;gap:12px;align-items:center;
+  padding-top:18px;margin-top:18px;border-top:1px solid rgba(185,141,78,.28);
+}
+.actions .right{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.done-pane{
+  min-height:420px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+}
+.done-pane .check{
+  width:94px;height:94px;border-radius:50%;
+  display:grid;place-items:center;background:linear-gradient(180deg,#69814a 0%,#4a5f32 100%);
+  color:#fff4db;font-size:46px;box-shadow:0 14px 24px rgba(67,82,46,.22);
+}
+</style>
+</head>
+<body class="tower-body">
+<div class="tower-stage tower-wood-bg">
+  <div class="tower-ambient">
+    <img class="tower-lantern left" src="../UX/resource/atoms/tassel.png" alt=""/>
+    <img class="tower-lantern right" src="../UX/resource/atoms/tassel.png" alt=""/>
+  </div>
+
+  <div class="tower-topbar">
+    <a class="tower-link-chip" href="../index.html">← 返回项目首页</a>
+    <div class="tower-title-plaque">
+      <img src="../UX/resource/atoms/title_plate_transparent.png" alt=""/>
+      <h1>导入事项</h1>
+    </div>
+    <a class="tower-link-chip" href="../dashboard.html">事项大盘 →</a>
+  </div>
+
+  <aside class="tower-scroll import-left">
+    <div class="tower-scroll-body">
+      <div class="tower-mini-title">导入流程</div>
+      <div class="import-step-shell" id="stepList"></div>
+      <img class="tower-painting" src="../UX/resource/atoms/pagoda_painting.png" alt=""/>
+    </div>
+  </aside>
+
+  <main class="tower-paper import-main">
+    <div class="import-paper" id="importPaper"></div>
+  </main>
+
+  <aside class="helper-grid" id="helperGrid"></aside>
+</div>
+<div class="tower-hud">支持 .xlsx / .xls / .csv</div>
+
+<script type="module">
+import { Store, LAYERS, STATUSES } from '../js/store.js';
+import { toast } from '../js/ui.js';
+
+const STAGE_W = 1672;
+const STAGE_H = 941;
+const FIELD_OPTIONS = [
+  { key: 'title', label: '事项名称' },
+  { key: 'layer', label: '所属层级' },
+  { key: 'status', label: '状态' },
+  { key: 'progress', label: '进度' },
+  { key: 'effort', label: '工作量' },
+  { key: 'assignee', label: '负责人' },
+  { key: 'risk', label: '风险标记' },
+  { key: 'notes', label: '备注' },
+  { key: 'dependencies', label: '依赖事项' },
+];
+const STEP_META = [
+  { id: 1, label: '上传文件' },
+  { id: 2, label: '字段映射' },
+  { id: 3, label: '数据预览' },
+  { id: 4, label: '导入完成' },
+];
+const STATUS_MAP = (() => {
+  const map = new Map();
+  STATUSES.forEach((status) => {
+    map.set(status.key, status.key);
+    map.set(status.name, status.key);
+  });
+  map.set('未开始', 'not_started');
+  map.set('进行中', 'in_progress');
+  map.set('已完成', 'done');
+  map.set('延期', 'overdue');
+  map.set('阻塞', 'blocked');
+  return map;
+})();
+const LAYER_MAP = (() => {
+  const map = new Map();
+  LAYERS.forEach((layer) => {
+    map.set(layer.key, layer.key);
+    map.set(layer.name, layer.key);
+    map.set(layer.en.toLowerCase(), layer.key);
+  });
+  return map;
+})();
+const DEFAULT_STATUS_PROGRESS = { done: 100, in_progress: 60, overdue: 40, blocked: 25, not_started: 0 };
+
+function resize() {
+  const scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+  document.documentElement.style.setProperty('--scale', scale);
+}
+window.addEventListener('resize', resize);
+resize();
+
+let currentStep = 1;
+let workbookRows = [];
+let workbookHeaders = [];
+let currentFile = null;
+let mapping = [];
+let parsedRows = [];
+let validRows = [];
+
+function normalizeKey(key) {
+  const source = String(key || '').trim().toLowerCase();
+  const map = {
+    'title': 'title', '标题': 'title', '事项名称': 'title', '事项名': 'title',
+    'layer': 'layer', '楼段': 'layer', '层级': 'layer', '所属楼段': 'layer', '所属层级': 'layer',
+    'status': 'status', '状态': 'status',
+    'progress': 'progress', '进度': 'progress',
+    'effort': 'effort', '工作量': 'effort', '人天': 'effort',
+    'assignee': 'assignee', '负责人': 'assignee', '责任人': 'assignee',
+    'risk': 'risk', '风险': 'risk', '风险标记': 'risk',
+    'notes': 'notes', '备注': 'notes', '说明': 'notes',
+    'dependencies': 'dependencies', '依赖': 'dependencies', '依赖事项': 'dependencies',
+  };
+  return map[source] || '';
+}
+
+function showStep(step) {
+  currentStep = step;
+  renderSteps();
+  renderPaper();
+  renderHelpers();
+}
+
+function renderSteps() {
+  const container = document.getElementById('stepList');
+  container.innerHTML = STEP_META.map((step) => `
+    <div class="tower-step ${step.id === currentStep ? 'active' : (step.id < currentStep ? 'done' : '')}" data-index="${step.id}">
+      ${step.label}
+    </div>
+  `).join('');
+}
+
+function renderHelpers() {
+  const helper = document.getElementById('helperGrid');
+  if (currentStep === 1) {
+    helper.innerHTML = `
+      <section class="tower-paper helper-card">
+        <h4>模板字段</h4>
+        <ul>
+          <li>必须字段：<code>title</code></li>
+          <li>推荐字段：<code>layer / status / progress / assignee</code></li>
+          <li>依赖事项支持用英文逗号、中文逗号或分号分隔</li>
+        </ul>
+      </section>
+      <section class="tower-paper helper-card">
+        <h4>操作建议</h4>
+        <p>如果你的 Excel 列名已经接近系统字段，下一步会自动识别并预映射；你也可以手工修正。</p>
+      </section>
+      <section class="tower-paper helper-card">
+        <h4>导入入口</h4>
+        <p><button class="tower-btn primary" type="button" id="templateBtn">下载模板</button></p>
+      </section>
+    `;
+    document.getElementById('templateBtn').onclick = downloadTemplate;
+    return;
+  }
+
+  if (currentStep === 2) {
+    const recognized = mapping.filter((row) => row.targetKey).length;
+    const duplicates = countDuplicateTargets();
+    helper.innerHTML = `
+      <section class="tower-paper helper-card">
+        <h4>映射概况</h4>
+        <p>源列数：${workbookHeaders.length}</p>
+        <p>已映射：${recognized}</p>
+        <p>重复映射：${duplicates}</p>
+      </section>
+      <section class="tower-paper helper-card">
+        <h4>校验规则</h4>
+        <ul>
+          <li><code>事项名称</code> 只能映射一个</li>
+          <li>重复目标字段会在预览前阻止进入下一步</li>
+          <li>未映射字段会被忽略，不会导入</li>
+        </ul>
+      </section>
+      <section class="tower-paper helper-card">
+        <h4>识别说明</h4>
+        <p>系统会优先根据列名自动识别，如果你的源字段特殊，可以在下拉框里重新指定系统字段。</p>
+      </section>
+    `;
+    return;
+  }
+
+  if (currentStep === 3) {
+    const invalidCount = parsedRows.length - validRows.length;
+    helper.innerHTML = `
+      <section class="tower-paper helper-card">
+        <h4>预览摘要</h4>
+        <p>总行数：${parsedRows.length}</p>
+        <p>有效行：${validRows.length}</p>
+        <p>无效行：${invalidCount}</p>
+      </section>
+      <section class="tower-paper helper-card">
+        <h4>导入策略</h4>
+        <p>点击“合并入库”后，仅会写入校验通过的行。依赖关系会在所有新事项创建后按标题自动回连。</p>
+      </section>
+      <section class="tower-paper helper-card">
+        <h4>补充建议</h4>
+        <p>若有无效行，建议先退回“字段映射”或重新导出 Excel 修正，再执行导入。</p>
+      </section>
+    `;
+    return;
+  }
+
+  helper.innerHTML = `
+    <section class="tower-paper helper-card">
+      <h4>导入完成</h4>
+      <p>可以直接返回事项大盘查看书脊结果，也可以继续导入下一批事项。</p>
+    </section>
+    <section class="tower-paper helper-card">
+      <h4>数据提醒</h4>
+      <p>如果当前浏览器支持文件系统 API，导入后的草稿也可以继续保存为 <code>tower.json</code>。</p>
+    </section>
+  `;
+}
+
+function renderPaper() {
+  const paper = document.getElementById('importPaper');
+  if (currentStep === 1) {
+    paper.innerHTML = `
+      <section class="import-head">
+        <div>
+          <h2>上传项目事项（Excel）</h2>
+          <div class="meta">把 Excel / CSV 拖入卷页中，系统会在下一步自动进入字段映射。</div>
+        </div>
+      </section>
+      <div class="tower-divider"></div>
+      <div class="dropzone" id="dropzone">
+        <div class="big">⤴</div>
+        <div class="title">拖拽 Excel 文件到此处</div>
+        <div class="sub">或点击上传，支持 <code>.xlsx</code> / <code>.xls</code> / <code>.csv</code></div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none"/>
+      </div>
+      <div class="ghost-line">
+        首次使用建议下载模板后再填充数据。若你的导出列名不完全一致，也可以在下一步中手工映射。
+      </div>
+    `;
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    dropzone.onclick = () => fileInput.click();
+    ['dragenter', 'dragover'].forEach((name) => dropzone.addEventListener(name, (event) => {
+      event.preventDefault();
+      dropzone.classList.add('drag');
+    }));
+    ['dragleave', 'drop'].forEach((name) => dropzone.addEventListener(name, (event) => {
+      event.preventDefault();
+      dropzone.classList.remove('drag');
+    }));
+    dropzone.addEventListener('drop', (event) => {
+      const file = event.dataTransfer.files[0];
+      if (file) readWorkbook(file);
+    });
+    fileInput.onchange = () => {
+      if (fileInput.files[0]) readWorkbook(fileInput.files[0]);
+    };
+    return;
+  }
+
+  if (currentStep === 2) {
+    paper.innerHTML = `
+      <section class="import-head">
+        <div>
+          <h2>字段映射</h2>
+          <div class="meta">把源文件列和系统字段一一对上。未映射列会被忽略，重复映射会在预览前阻止继续。</div>
+        </div>
+      </section>
+      <div class="tower-divider"></div>
+      <div class="tower-paper-card" style="padding:18px 0">
+        <div class="mapping-head">
+          <div>Excel 列</div>
+          <div style="text-align:center">映射</div>
+          <div>系统字段</div>
+          <div>识别状态</div>
+        </div>
+        <div id="mappingRows"></div>
+      </div>
+      <div class="actions">
+        <div class="tower-meta">当前文件：${escapeHtml(currentFile?.name || '未命名')}</div>
+        <div class="right">
+          <button class="tower-btn ghost" type="button" id="mappingBackBtn">上一步</button>
+          <button class="tower-btn primary" type="button" id="mappingNextBtn">下一步</button>
+        </div>
+      </div>
+    `;
+    renderMappingRows();
+    document.getElementById('mappingBackBtn').onclick = () => showStep(1);
+    document.getElementById('mappingNextBtn').onclick = () => {
+      const errors = mappingErrors();
+      if (errors.length) {
+        toast(errors[0], { type: 'error' });
+        return;
+      }
+      parseMappedRows();
+      showStep(3);
+    };
+    return;
+  }
+
+  if (currentStep === 3) {
+    const invalidCount = parsedRows.length - validRows.length;
+    paper.innerHTML = `
+      <section class="import-head">
+        <div>
+          <h2>数据预览</h2>
+          <div class="meta">系统只会导入校验通过的行。你可以先检查状态、进度、依赖解析是否符合预期。</div>
+        </div>
+      </section>
+      <div class="tower-divider"></div>
+      <div class="summary">
+        <span class="tower-chip">总行数 ${parsedRows.length}</span>
+        <span class="tower-chip">有效行 ${validRows.length}</span>
+        <span class="tower-chip">无效行 ${invalidCount}</span>
+        <span class="tower-chip">文件 ${escapeHtml(currentFile?.name || '')}</span>
+      </div>
+      <div class="preview-wrap">
+        <table class="tower-table" id="previewTable"></table>
+      </div>
+      <div class="actions">
+        <div class="tower-meta">无效行不会导入。若依赖标题未匹配到已有事项，会在完成页给出提醒。</div>
+        <div class="right">
+          <button class="tower-btn ghost" type="button" id="previewBackBtn">返回映射</button>
+          <button class="tower-btn primary" type="button" id="importBtn" ${validRows.length ? '' : 'disabled'}>合并入库</button>
+        </div>
+      </div>
+    `;
+    renderPreviewTable();
+    document.getElementById('previewBackBtn').onclick = () => showStep(2);
+    document.getElementById('importBtn').onclick = importRows;
+    return;
+  }
+
+  paper.innerHTML = `
+    <div class="done-pane">
+      <div class="check">✓</div>
+      <h2 style="margin:18px 0 8px;font-family:'Noto Serif SC',serif;font-size:34px;color:#4d3114">导入完成</h2>
+      <div class="meta" id="doneMeta" style="max-width:600px"></div>
+      <div class="actions" style="border-top:none;margin-top:28px;padding-top:0">
+        <div></div>
+        <div class="right">
+          <button class="tower-btn ghost" type="button" id="continueBtn">继续导入</button>
+          <button class="tower-btn primary" type="button" id="boardBtn">查看事项大盘</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('continueBtn').onclick = () => location.reload();
+  document.getElementById('boardBtn').onclick = () => location.href = '../dashboard.html';
+}
+
+function renderMappingRows() {
+  const container = document.getElementById('mappingRows');
+  container.innerHTML = mapping.map((row, index) => {
+    const duplicate = row.targetKey && mapping.filter((candidate) => candidate.targetKey === row.targetKey).length > 1;
+    const status = !row.targetKey ? { cls: 'bad', text: '未映射' } : duplicate ? { cls: 'warn', text: '重复映射' } : { cls: 'ok', text: '已识别' };
+    return `
+      <div class="mapping-row">
+        <div>${escapeHtml(row.header)}</div>
+        <div class="mapping-arrow">→</div>
+        <div>
+          <select class="tower-select" data-index="${index}" style="height:38px">
+            <option value="">忽略此列</option>
+            ${FIELD_OPTIONS.map((field) => `<option value="${field.key}" ${row.targetKey === field.key ? 'selected' : ''}>${field.label}</option>`).join('')}
+          </select>
+        </div>
+        <div><span class="mapping-status ${status.cls}">${status.text}</span></div>
+      </div>
+    `;
+  }).join('');
+  container.querySelectorAll('select').forEach((select) => {
+    select.onchange = () => {
+      mapping[Number(select.dataset.index)].targetKey = select.value;
+      renderMappingRows();
+      renderHelpers();
+    };
+  });
+}
+
+function mappingErrors() {
+  const targets = mapping.map((row) => row.targetKey).filter(Boolean);
+  const duplicates = [...new Set(targets.filter((key) => targets.filter((candidate) => candidate === key).length > 1))];
+  const titleCount = targets.filter((key) => key === 'title').length;
+  const errors = [];
+  if (titleCount !== 1) errors.push('必须且只能映射一个“事项名称”字段');
+  if (duplicates.length) errors.push(`存在重复映射：${duplicates.join('、')}`);
+  return errors;
+}
+
+function countDuplicateTargets() {
+  return mappingErrors().some((message) => message.includes('重复映射'))
+    ? [...new Set(mapping.map((row) => row.targetKey).filter(Boolean).filter((key) => mapping.filter((candidate) => candidate.targetKey === key).length > 1))].length
+    : 0;
+}
+
+function readWorkbook(file) {
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    try {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      if (rows.length < 2) {
+        toast('文件内容为空或缺少表头', { type: 'error' });
+        return;
+      }
+      workbookHeaders = rows[0].map((header, index) => String(header || `列${index + 1}`).trim());
+      workbookRows = rows.slice(1).filter((row) => row.some((cell) => String(cell).trim()));
+      currentFile = file;
+      mapping = workbookHeaders.map((header) => ({ header, targetKey: normalizeKey(header) }));
+      showStep(2);
+    } catch (error) {
+      console.error(error);
+      toast(`文件解析失败：${error.message}`, { type: 'error' });
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseMappedRows() {
+  parsedRows = workbookRows.map((row, index) => {
+    const source = {};
+    mapping.forEach((entry, mappingIndex) => {
+      if (!entry.targetKey) return;
+      source[entry.targetKey] = row[mappingIndex];
+    });
+    const item = {};
+    const errors = [];
+
+    item.title = String(source.title || '').trim();
+    if (!item.title) errors.push('标题为空');
+
+    const layerRaw = String(source.layer || '').trim();
+    const layerKey = !layerRaw ? 'implementation' : (LAYER_MAP.get(layerRaw) || LAYER_MAP.get(layerRaw.toLowerCase()));
+    if (!layerKey) errors.push(`未知层级「${layerRaw}」`);
+    item.layer = layerKey || 'implementation';
+
+    const statusRaw = String(source.status || '').trim();
+    const statusKey = !statusRaw ? 'not_started' : (STATUS_MAP.get(statusRaw) || STATUS_MAP.get(statusRaw.toLowerCase()));
+    if (!statusKey) errors.push(`未知状态「${statusRaw}」`);
+    item.status = statusKey || 'not_started';
+
+    const progressRaw = String(source.progress || '').trim();
+    if (!progressRaw) item.progress = DEFAULT_STATUS_PROGRESS[item.status] ?? 0;
+    else {
+      const progress = Number(progressRaw);
+      if (Number.isNaN(progress)) errors.push(`进度格式错误「${progressRaw}」`);
+      item.progress = Number.isNaN(progress) ? (DEFAULT_STATUS_PROGRESS[item.status] ?? 0) : Math.max(0, Math.min(100, Math.round(progress)));
+    }
+
+    const effort = parseInt(source.effort, 10);
+    if (Number.isNaN(effort)) item.effort = 1;
+    else if (effort < 1 || effort > 20) {
+      errors.push('工作量需在 1-20 之间');
+      item.effort = Math.max(1, Math.min(20, effort));
+    } else item.effort = effort;
+
+    item.assignee = String(source.assignee || '').trim();
+    const riskRaw = String(source.risk || '').trim().toLowerCase();
+    item.risk = ['true', '1', 'yes', 'y', '是', 't'].includes(riskRaw);
+    if (item.risk) {
+      item.status = 'blocked';
+      item.progress = Math.max(item.progress, 25);
+    }
+    item.notes = String(source.notes || '').trim();
+    item._depTitles = String(source.dependencies || '').split(/[,，;；]/).map((value) => value.trim()).filter(Boolean);
+
+    return { index: index + 2, item, errors };
+  });
+  validRows = parsedRows.filter((row) => !row.errors.length);
+}
+
+function renderPreviewTable() {
+  const table = document.getElementById('previewTable');
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>行</th>
+        <th>事项名称</th>
+        <th>所属层级</th>
+        <th>状态</th>
+        <th>进度</th>
+        <th>负责人</th>
+        <th>依赖</th>
+        <th>错误</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${parsedRows.map((row) => `
+        <tr style="${row.errors.length ? 'background:rgba(208,94,62,.08)' : ''}">
+          <td>${row.index}</td>
+          <td>${escapeHtml(row.item.title || '（空）')}</td>
+          <td>${escapeHtml(LAYERS.find((layer) => layer.key === row.item.layer)?.name || row.item.layer)}</td>
+          <td>${escapeHtml(STATUS_MAP.get(row.item.status) ? (STATUSES.find((status) => status.key === row.item.status)?.name || row.item.status) : row.item.status)}</td>
+          <td>${row.item.progress}%</td>
+          <td>${escapeHtml(row.item.assignee || '未分配')}</td>
+          <td>${escapeHtml(row.item._depTitles.join('、'))}</td>
+          <td style="color:#a54526">${escapeHtml(row.errors.join('；'))}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+}
+
+function importRows() {
+  const created = [];
+  validRows.forEach((row) => {
+    const saved = Store.addItem({
+      title: row.item.title,
+      layer: row.item.layer,
+      status: row.item.status,
+      progress: row.item.progress,
+      effort: row.item.effort,
+      assignee: row.item.assignee,
+      risk: row.item.risk,
+      notes: row.item.notes,
+    });
+    created.push({ item: saved, deps: row.item._depTitles });
+  });
+
+  const titleIndex = new Map();
+  Store.items.forEach((item) => titleIndex.set(item.title, item.id));
+  let depWired = 0;
+  let depMissing = 0;
+
+  created.forEach(({ item, deps }) => {
+    const ids = [];
+    deps.forEach((title) => {
+      const depId = titleIndex.get(title);
+      if (depId && depId !== item.id && !Store.wouldCycle(item.id, depId)) {
+        ids.push(depId);
+        depWired++;
+      } else if (!depId) {
+        depMissing++;
+      }
+    });
+    if (ids.length) Store.updateItem(item.id, { dependencies: ids });
+  });
+
+  showStep(4);
+  const meta = document.getElementById('doneMeta');
+  meta.innerHTML = `成功导入 <b>${created.length}</b> 项，连接依赖 <b>${depWired}</b> 条${depMissing ? `，<span style="color:#a54526">未匹配 ${depMissing} 条依赖</span>` : ''}。`;
+}
+
+function downloadTemplate() {
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ['title', 'layer', 'status', 'progress', 'effort', 'assignee', 'risk', 'notes', 'dependencies'],
+    ['示例：数据流设计', 'coordination', 'in_progress', 50, 5, 'Dev-A', 'false', '数据采集链路设计', '接口设计, 权限模型'],
+    ['示例：监控告警', 'infrastructure', 'done', 100, 3, 'Dev-C', 'false', '监控配置完成', ''],
+  ]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'items');
+  XLSX.writeFile(workbook, 'tower-import-template.xlsx');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+renderSteps();
+renderPaper();
+renderHelpers();
+</script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Tower · 主页 (Mockup)</title>
+<style>
+  /* === 设计稿基准 1672 x 941，整页等比缩放 === */
+  :root {
+    --design-w: 1672;
+    --design-h: 941;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #1a1612;
+    font-family: "Noto Serif SC", "Source Han Serif SC", "PingFang SC", serif;
+    color: #3d3528;
+    overflow: hidden;
+  }
+
+  /* 舞台：以设计稿原始像素绘制，再用 transform 缩放到视口 */
+  .stage {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: calc(var(--design-w) * 1px);
+    height: calc(var(--design-h) * 1px);
+    transform: translate(-50%, -50%) scale(var(--scale, 1));
+    transform-origin: center center;
+  }
+
+  /* 调试：显示参考图（按 D 切换） */
+  .ref {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0; pointer-events: none;
+    z-index: 999;
+    transition: opacity 150ms;
+  }
+  body.show-ref .ref { opacity: 0.45; }
+
+  /* === 第 1 层：背景贴图（塔 + 山水） === */
+  .layer-bg {
+    position: absolute; top: 0; left: 0;
+    width: 1672px; height: 941px;
+    display: block;
+    z-index: 0;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* === 第 2 层：左侧信息面板（半透明卡片，压在背景上） === */
+  /* 主页参考图里左侧约 28~318px 横向、56~880px 纵向 */
+  .panel-left {
+    position: absolute;
+    left: 0; top: 0;
+    width: 400px; height: 941px;
+    background: rgba(248, 244, 236, 0.78);
+    border-right: 1px solid rgba(181, 168, 142, 0.5);
+    padding: 28px 32px;
+    backdrop-filter: blur(2px);
+    display: flex; flex-direction: column; gap: 20px;
+    font-size: 13px; line-height: 1.65; color: #5a5040;
+    overflow-y: auto;
+  }
+  .panel-left h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 22px; font-weight: 700;
+    color: #3d3528; margin: 0;
+    letter-spacing: 0.5px;
+  }
+  .panel-left .subtitle {
+    font-size: 11px; color: #9a8e7a; letter-spacing: 0.15em;
+    margin-top: -8px;
+  }
+  .panel-left .section-title {
+    font-size: 13px; font-weight: 700; color: #3d3528;
+    border-bottom: 1px solid rgba(181, 168, 142, 0.4);
+    padding-bottom: 4px; margin-bottom: 4px;
+  }
+  .goal-item {
+    display: flex; gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(181, 168, 142, 0.3);
+    border-radius: 3px;
+  }
+  .goal-item .icon {
+    width: 22px; height: 22px; flex-shrink: 0;
+    background: #c9a832; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px; font-weight: 700;
+  }
+  .goal-item .text strong { color: #3d3528; font-size: 11.5px; }
+  .goal-item .text p { font-size: 10px; color: #7a6e5d; margin: 2px 0 0; }
+
+  .nav-item {
+    padding: 6px 0;
+    font-size: 12px; color: #5a5040;
+    border-bottom: 1px dashed rgba(181, 168, 142, 0.3);
+    cursor: pointer;
+  }
+  .nav-item:hover { color: #c17832; }
+
+  /* === 第 3 层：6 楼层热区 + 标签卡片（右侧） === */
+  .floors {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+  /* 楼层热区——叠在塔身上，hover 时高亮 */
+  .floor-hit {
+    position: absolute;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: background 180ms;
+  }
+  .floor-hit:hover { background: rgba(201, 168, 50, 0.18); }
+  /* 6 个热区的位置（基于参考图目测，需要后续微调） */
+  .floor-hit[data-floor="1"] { left: 870px; top: 130px; width: 220px; height: 95px; }   /* 愿景层（塔顶） */
+  .floor-hit[data-floor="2"] { left: 850px; top: 235px; width: 260px; height: 110px; }  /* 设计层 */
+  .floor-hit[data-floor="3"] { left: 825px; top: 355px; width: 305px; height: 115px; }  /* 协同层 */
+  .floor-hit[data-floor="4"] { left: 800px; top: 480px; width: 350px; height: 120px; }  /* 实现层 */
+  .floor-hit[data-floor="5"] { left: 770px; top: 610px; width: 410px; height: 140px; }  /* 基础设施层（底层） */
+
+  /* 右侧标签卡片 */
+  .floor-tag {
+    position: absolute;
+    width: 220px;
+    padding: 10px 14px;
+    background: rgba(248, 244, 236, 0.88);
+    border-left: 3px solid #c17832;
+    border-radius: 2px;
+    font-size: 11px;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 180ms, background 180ms;
+  }
+  .floor-tag:hover { background: rgba(255, 248, 232, 0.95); transform: translateX(-4px); }
+  .floor-tag .name {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 14px; font-weight: 700; color: #3d3528;
+  }
+  .floor-tag .en {
+    font-size: 9px; color: #9a8e7a; letter-spacing: 0.2em; margin-left: 6px;
+  }
+  .floor-tag .pct {
+    font-family: Georgia, serif; font-weight: 700;
+    font-size: 13px; color: #c17832;
+    float: right;
+  }
+  .floor-tag .bar {
+    margin-top: 6px; height: 3px; background: rgba(181,168,142,0.3); border-radius: 2px; overflow: hidden;
+  }
+  .floor-tag .bar > i {
+    display: block; height: 100%; background: linear-gradient(90deg, #8a9a5e, #6b7c4e);
+  }
+
+  /* 5 个标签的位置（右侧自上而下） */
+  .floor-tag[data-floor="1"] { left: 1380px; top: 150px; }
+  .floor-tag[data-floor="2"] { left: 1380px; top: 270px; }
+  .floor-tag[data-floor="3"] { left: 1380px; top: 390px; }
+  .floor-tag[data-floor="4"] { left: 1380px; top: 510px; }
+  .floor-tag[data-floor="5"] { left: 1380px; top: 630px; }
+
+  /* === 第 4 层：右上整体进度 === */
+  .overall {
+    position: absolute;
+    right: 32px; top: 28px;
+    width: 240px;
+    background: rgba(248, 244, 236, 0.85);
+    border: 1px solid rgba(181, 168, 142, 0.5);
+    border-radius: 3px;
+    padding: 12px 16px;
+    pointer-events: auto;
+  }
+  .overall .label { font-size: 12px; color: #5a5040; }
+  .overall .pct {
+    float: right;
+    font-family: Georgia, serif; font-size: 22px; font-weight: 700;
+    color: #6b7c4e;
+    line-height: 1;
+  }
+  .overall .meta { font-size: 9px; color: #9a8e7a; margin-top: 6px; clear: both; }
+
+  /* === 第 5 层：右下"进入事项大盘"按钮 === */
+  .enter-btn {
+    position: absolute;
+    right: 32px; top: 280px;
+    padding: 10px 22px;
+    background: #6b7c4e;
+    color: #fff;
+    border: none; border-radius: 4px;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    pointer-events: auto;
+  }
+  .enter-btn:hover { background: #5e6e43; }
+
+  /* 调试网格（按 G 切换） */
+  .grid {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(201,168,50,0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,50,0.15) 1px, transparent 1px);
+    background-size: 100px 100px;
+    opacity: 0;
+  }
+  body.show-grid .grid { opacity: 1; }
+
+  /* 调试提示 */
+  .hud {
+    position: fixed; left: 8px; bottom: 8px;
+    color: rgba(255,255,255,0.5);
+    font-size: 11px; font-family: monospace;
+    z-index: 1000;
+  }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <!-- 背景贴图 -->
+    <img class="layer-bg" src="./assets/bg/home-bg.png" alt="" />
+
+    <!-- 楼层热区 + 标签 -->
+    <div class="floors">
+      <div class="floor-hit" data-floor="1" title="愿景层"></div>
+      <div class="floor-hit" data-floor="2" title="设计层"></div>
+      <div class="floor-hit" data-floor="3" title="协同层"></div>
+      <div class="floor-hit" data-floor="4" title="实现层"></div>
+      <div class="floor-hit" data-floor="5" title="基础设施层"></div>
+
+      <div class="floor-tag" data-floor="1" data-layer="vision">
+        <span class="pct">—</span>
+        <div><span class="name">愿景层</span><span class="en">VISION</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+      </div>
+      <div class="floor-tag" data-floor="2" data-layer="design">
+        <span class="pct">—</span>
+        <div><span class="name">设计层</span><span class="en">DESIGN</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+      </div>
+      <div class="floor-tag" data-floor="3" data-layer="coordination">
+        <span class="pct">—</span>
+        <div><span class="name">协同层</span><span class="en">COORDINATION</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+      </div>
+      <div class="floor-tag" data-floor="4" data-layer="implementation">
+        <span class="pct">—</span>
+        <div><span class="name">实现层</span><span class="en">IMPLEMENTATION</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+      </div>
+      <div class="floor-tag" data-floor="5" data-layer="infrastructure">
+        <span class="pct">—</span>
+        <div><span class="name">基础设施层</span><span class="en">INFRASTRUCTURE</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+      </div>
+    </div>
+
+    <!-- 左侧信息面板 -->
+    <aside class="panel-left">
+      <div>
+        <h1 id="projName">—</h1>
+        <div class="subtitle" id="projGoal">—</div>
+      </div>
+
+      <div>
+        <div class="section-title">项目介绍</div>
+        <p id="projAccept">—</p>
+      </div>
+
+      <div>
+        <div class="section-title">操作</div>
+        <div class="nav-item" id="navDashboard">→ 进入事项大盘</div>
+        <div class="nav-item" id="navAdd">+ 新增事项</div>
+        <div class="nav-item" id="navImport">↑ Excel 导入</div>
+        <div class="nav-item" id="navOpenJson">↥ 打开 tower.json</div>
+        <div class="nav-item" id="navSaveJson">↓ 保存 tower.json</div>
+        <div class="nav-item" id="navReport">📋 今日日报</div>
+        <div class="nav-item" id="navEditMeta">⚙ 编辑项目信息</div>
+        <div id="fileMeta" style="margin-top:8px;font-size:11px;color:#9a8e7a;line-height:1.5"></div>
+      </div>
+
+      <div>
+        <div class="section-title">楼段一览</div>
+        <div id="layerList" style="display:flex;flex-direction:column;gap:6px;font-size:12px"></div>
+      </div>
+    </aside>
+
+    <!-- 右上整体进度 -->
+    <div class="overall" style="cursor:pointer" id="overallBox">
+      <div class="pct" id="overallPct">—</div>
+      <div class="label">整体进度</div>
+      <div class="meta" id="overallMeta">—</div>
+    </div>
+
+    <!-- 进入事项大盘 -->
+    <button class="enter-btn" id="enterBtn">进入事项大盘 →</button>
+
+    <!-- 调试参考图 / 网格 -->
+    <img class="ref"  alt="参考" />
+    <div class="grid"></div>
+  </div>
+
+  <div class="hud">D=对照参考图  G=网格  +/-=缩放</div>
+
+<script type="module">
+  import { Store, LAYERS } from '../js/store.js';
+  import { openDrawer, openModal, toast, confirm } from '../js/ui.js';
+
+  // 等比缩放
+  function resize() {
+    const sw = 1672, sh = 941;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const scale = Math.min(vw / sw, vh / sh);
+    document.documentElement.style.setProperty('--scale', scale);
+  }
+  window.addEventListener('resize', resize); resize();
+
+  // 调试快捷键
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') document.body.classList.toggle('show-ref');
+    if (e.key === 'g' || e.key === 'G') document.body.classList.toggle('show-grid');
+  });
+
+  // 楼层联动 hover（floor-hit 与 floor-tag 互动）
+  document.querySelectorAll('.floor-hit, .floor-tag').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      const f = el.dataset.floor;
+      document.querySelectorAll(`[data-floor="${f}"]`).forEach(x => x.classList.add('active'));
+    });
+    el.addEventListener('mouseleave', () => {
+      document.querySelectorAll('.active').forEach(x => x.classList.remove('active'));
+    });
+    // 点击 floor 跳转 dashboard 并锚定该层
+    el.addEventListener('click', () => {
+      const layer = el.dataset.layer || el.closest('[data-layer]')?.dataset.layer
+        || LAYERS[(parseInt(el.dataset.floor) - 1) || 0]?.key;
+      location.href = `../dashboard.html${layer ? `?layer=${layer}` : ''}`;
+    });
+  });
+
+  // ---------- 渲染真实数据 ----------
+  function render() {
+    const p = Store.project;
+    document.getElementById('projName').textContent = p.name;
+    document.getElementById('projGoal').textContent = p.goal;
+    document.getElementById('projAccept').textContent = p.acceptanceCriteria || '（未填写验收标准）';
+
+    const ov = Store.overallProgress();
+    document.getElementById('overallPct').textContent = ov.pct + '%';
+    document.getElementById('overallMeta').textContent = `${ov.doneCount}/${ov.count} 项 · 共 ${ov.total} 人天`;
+    const fileMeta = document.getElementById('fileMeta');
+    fileMeta.textContent = Store.boundFileName()
+      ? `当前数据文件：${Store.boundFileName()}`
+      : (Store.fileSystemSupported() ? '当前正在使用浏览器本地草稿，可随时保存为 tower.json' : '当前正在使用浏览器本地草稿，浏览器仅支持下载 JSON 副本');
+
+    // 5 个 floor-tag 按 layer 填充
+    document.querySelectorAll('.floor-tag').forEach(tag => {
+      const layer = tag.dataset.layer;
+      const lp = Store.layerProgress(layer);
+      tag.querySelector('.pct').textContent = lp.pct + '%';
+      tag.querySelector('.bar > i').style.width = lp.pct + '%';
+    });
+
+    // 楼段一览
+    const list = document.getElementById('layerList');
+    list.innerHTML = '';
+    LAYERS.forEach(L => {
+      const lp = Store.layerProgress(L.key);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;padding:4px 6px;border-bottom:1px dashed rgba(181,168,142,0.3);cursor:pointer';
+      row.innerHTML = `<span>${L.name}</span><span style="color:#7a6e5d">${lp.count} 项 · ${lp.pct}%</span>`;
+      row.onclick = () => location.href = `../dashboard.html?layer=${L.key}`;
+      list.appendChild(row);
+    });
+  }
+
+  // ---------- 顶部操作 ----------
+  document.getElementById('enterBtn').onclick = () => location.href = '../dashboard.html';
+  document.getElementById('navDashboard').onclick = () => location.href = '../dashboard.html';
+  document.getElementById('overallBox').onclick = () => location.href = '../dashboard.html';
+
+  document.getElementById('navAdd').onclick = () => {
+    location.href = '../dashboard.html?action=add';
+  };
+  document.getElementById('navImport').onclick = () => location.href = './import.html';
+  document.getElementById('navOpenJson').onclick = async () => {
+    try {
+      const loaded = await Store.openProjectFile();
+      if (!loaded) return;
+      render();
+      toast(`已打开 ${Store.boundFileName() || 'tower.json'}`, { type: 'success' });
+    } catch (err) {
+      console.error(err);
+      toast(`打开失败：${err.message}`, { type: 'error' });
+    }
+  };
+  document.getElementById('navSaveJson').onclick = async () => {
+    try {
+      const result = await Store.saveProjectFile();
+      if (!result) return;
+      render();
+      toast(result.kind === 'file' ? `已保存到 ${result.name}` : `已下载 ${result.name}`, { type: 'success' });
+    } catch (err) {
+      console.error(err);
+      toast(`保存失败：${err.message}`, { type: 'error' });
+    }
+  };
+  document.getElementById('navReport').onclick = () => {
+    const md = Store.buildDailyReport();
+    openModal({
+      title: '今日日报', width: 640, render: (body) => {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+          <textarea readonly style="width:100%;height:380px;font-family:monospace;font-size:12px;padding:12px;border:1px solid #b89868;background:#fffaf0;color:#3a2a1a;border-radius:3px;resize:vertical">${md}</textarea>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+            <button id="copyBtn" style="padding:6px 16px;border:none;background:#5a7a3e;color:#f6ecd2;border-radius:3px;cursor:pointer">复制 Markdown</button>
+          </div>`;
+        body.appendChild(wrap);
+        wrap.querySelector('#copyBtn').onclick = () => {
+          navigator.clipboard.writeText(md).then(() => toast('已复制', { type: 'success' }));
+        };
+      }
+    });
+  };
+
+  document.getElementById('navEditMeta').onclick = () => {
+    const p = Store.project;
+    openDrawer({
+      title: '项目信息', width: 480, render: (body, { close }) => {
+        body.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:14px;font-size:13px">
+            <label>项目名称<input id="fName" value="${p.name || ''}" style="display:block;width:100%;margin-top:4px;padding:6px 10px;border:1px solid #b89868;border-radius:3px;font-size:13px"/></label>
+            <label>项目目标<textarea id="fGoal" rows="2" style="display:block;width:100%;margin-top:4px;padding:6px 10px;border:1px solid #b89868;border-radius:3px;font-size:13px;resize:vertical">${p.goal || ''}</textarea></label>
+            <label>验收标准<textarea id="fAccept" rows="4" style="display:block;width:100%;margin-top:4px;padding:6px 10px;border:1px solid #b89868;border-radius:3px;font-size:13px;resize:vertical">${p.acceptanceCriteria || ''}</textarea></label>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+              <button id="resetSeed" style="padding:6px 14px;border:1px solid #b89868;background:transparent;color:#3a2a1a;border-radius:3px;cursor:pointer">重置示例数据</button>
+              <button id="saveBtn" style="padding:6px 16px;border:none;background:#5a7a3e;color:#f6ecd2;border-radius:3px;cursor:pointer">保存</button>
+            </div>
+          </div>`;
+        body.querySelector('#saveBtn').onclick = () => {
+          Store.setProjectMeta({
+            name: body.querySelector('#fName').value.trim(),
+            goal: body.querySelector('#fGoal').value.trim(),
+            acceptanceCriteria: body.querySelector('#fAccept').value.trim(),
+          });
+          render(); close(); toast('已保存', { type: 'success' });
+        };
+        body.querySelector('#resetSeed').onclick = async () => {
+          if (await confirm({ title: '重置数据', message: '将清空当前项目数据并恢复演示数据，是否继续？', danger: true, okText: '重置' })) {
+            Store.resetToSeed(); render(); close(); toast('已重置', { type: 'success' });
+          }
+        };
+      }
+    });
+  };
+
+  Store.subscribe(render);
+  render();
+</script>
+</body>
+</html>
