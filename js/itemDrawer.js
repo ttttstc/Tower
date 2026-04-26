@@ -29,8 +29,10 @@ export function openItemDrawer(itemId, onSaved, opts = {}) {
     assignee: Store.project.owners[Store.project.owners.length - 1] || '',
     risk: false,
     notes: '',
+    milestones: [],
   } : JSON.parse(JSON.stringify(original));
   if (draft.progress == null) draft.progress = STATUS_PROGRESS[draft.status] ?? 0;
+  if (!Array.isArray(draft.milestones)) draft.milestones = [];
 
   openDrawer({
     title: isNew ? '新增事项' : '事项详情',
@@ -67,6 +69,12 @@ export function openItemDrawer(itemId, onSaved, opts = {}) {
         if (pct === 100) draft.status = 'done';
         else if (pct >= 1) draft.status = 'in_progress';
         else draft.status = 'not_started';
+      };
+      const formatMilestoneDate = (value) => {
+        if (!value) return '未排期';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return `${date.getMonth() + 1}/${date.getDate()}`;
       };
 
       // 标题
@@ -122,6 +130,70 @@ export function openItemDrawer(itemId, onSaved, opts = {}) {
       };
       ownerWrap.appendChild(ownerSel); ownerWrap.appendChild(newOwnerBtn);
       body.appendChild(fld('负责人', ownerWrap));
+
+      // 里程碑标签
+      const milestoneBox = el('div', {
+        style: {
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px',
+          border: '1px solid #b89868',
+          borderRadius: '10px',
+          background: '#fffaf0',
+          padding: '10px',
+        },
+      });
+      function renderMilestones() {
+        milestoneBox.innerHTML = '';
+        if (!Store.milestones.length) {
+          milestoneBox.appendChild(el('span', { style: { fontSize: '12px', color: '#9a8862' } }, '暂无里程碑，可回到项目主页创建后再标记'));
+          return;
+        }
+        Store.milestones.forEach((milestone) => {
+          const active = draft.milestones.includes(milestone.id);
+          const progress = Store.milestoneProgress(milestone.id);
+          const button = el('button', {
+            type: 'button',
+            style: {
+              minWidth: '138px',
+              padding: '10px 12px',
+              borderRadius: '10px',
+              border: `1px solid ${active ? '#6f8447' : '#d3b07e'}`,
+              background: active ? 'linear-gradient(180deg, #f3ead4 0%, #dfcfaa 100%)' : 'rgba(255,252,245,.9)',
+              color: '#4f3518',
+              textAlign: 'left',
+              cursor: 'pointer',
+              boxShadow: active ? '0 8px 16px rgba(85,68,32,.12)' : 'none',
+            },
+          });
+          button.appendChild(el('strong', {
+            style: {
+              display: 'block',
+              fontFamily: '"Noto Serif SC",serif',
+              fontSize: '14px',
+            },
+          }, milestone.name));
+          button.appendChild(el('small', {
+            style: {
+              display: 'block',
+              marginTop: '5px',
+              color: '#7a603d',
+              fontSize: '11px',
+            },
+          }, `${formatMilestoneDate(milestone.date)} · ${progress.pct}% · ${progress.count} 项`));
+          button.onclick = (event) => {
+            event.preventDefault();
+            const refs = new Set(draft.milestones);
+            if (refs.has(milestone.id)) refs.delete(milestone.id);
+            else refs.add(milestone.id);
+            draft.milestones = [...refs];
+            renderMilestones();
+          };
+          milestoneBox.appendChild(button);
+        });
+      }
+      renderMilestones();
+      body.appendChild(fld('里程碑标签', milestoneBox));
 
       // 状态
       const statusGrp = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' } });

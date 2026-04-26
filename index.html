@@ -7,410 +7,1154 @@
   :root {
     --design-w: 1672;
     --design-h: 941;
+    --paper: #f5eddc;
+    --paper-line: rgba(129, 98, 57, 0.28);
+    --ink: #2d241a;
+    --muted: #67584a;
+    --gold: #a47b3d;
+    --gold-soft: rgba(164, 123, 61, 0.22);
+    --shadow: 0 18px 48px rgba(41, 26, 12, 0.16);
+    --serif: "Noto Serif SC", "Songti SC", "STSong", serif;
+    --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   }
+
   * { box-sizing: border-box; }
+
   html, body {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    background: #1a1612;
-    font-family: "Noto Serif SC", "Source Han Serif SC", "PingFang SC", serif;
-    color: #3d3528;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #17120f;
+    color: var(--ink);
+    font-family: var(--sans);
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  .viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
   }
 
   .stage {
     position: absolute;
-    top: 50%; left: 50%;
+    top: 50%;
+    left: 50%;
     width: calc(var(--design-w) * 1px);
     height: calc(var(--design-h) * 1px);
     transform: translate(-50%, -50%) scale(var(--scale, 1));
     transform-origin: center center;
+    overflow: hidden;
   }
 
-  .ref {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    opacity: 0; pointer-events: none;
-    z-index: 999;
-    transition: opacity 150ms;
-  }
-  body.show-ref .ref { opacity: 0.45; }
-
-  .layer-bg {
-    position: absolute; top: 0; left: 0;
-    width: 1672px; height: 941px;
-    display: block;
-    z-index: 0;
+  .home-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     user-select: none;
     -webkit-user-drag: none;
   }
 
-  .panel-left {
+  .home-panel {
     position: absolute;
-    left: 0; top: 0;
-    width: 400px; height: 941px;
-    background: rgba(248, 244, 236, 0.78);
-    border-right: 1px solid rgba(181, 168, 142, 0.5);
-    padding: 28px 32px;
-    backdrop-filter: blur(2px);
-    display: flex; flex-direction: column; gap: 20px;
-    font-size: 13px; line-height: 1.65; color: #5a5040;
-    overflow-y: auto;
-  }
-  .panel-left h1 {
-    font-family: "Fraunces", Georgia, serif;
-    font-size: 22px; font-weight: 700;
-    color: #3d3528; margin: 0;
-    letter-spacing: 0.5px;
-  }
-  .panel-left .subtitle {
-    font-size: 11px; color: #9a8e7a; letter-spacing: 0.15em;
-    margin-top: -8px;
-  }
-  .panel-left .section-title {
-    font-size: 13px; font-weight: 700; color: #3d3528;
-    border-bottom: 1px solid rgba(181, 168, 142, 0.4);
-    padding-bottom: 4px; margin-bottom: 4px;
+    top: 16px;
+    left: 18px;
+    width: 430px;
+    height: 908px;
+    padding: 16px;
+    border: 1px solid rgba(176, 140, 88, 0.48);
+    border-radius: 4px;
+    background:
+      linear-gradient(180deg, rgba(255, 252, 244, 0.74), rgba(247, 239, 222, 0.84)),
+      url("./UX/resource/home/panel_texture.png") center/cover no-repeat;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 250, 238, 0.65),
+      var(--shadow);
+    z-index: 4;
   }
 
-  .nav-item {
-    padding: 6px 0;
-    font-size: 12px; color: #5a5040;
-    border-bottom: 1px dashed rgba(181, 168, 142, 0.3);
+  .panel-corner {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
+  .panel-corner.tl { top: -1px; left: -1px; }
+  .panel-corner.tr { top: -1px; right: -1px; transform: rotate(90deg); }
+  .panel-corner.br { right: -1px; bottom: -1px; transform: rotate(180deg); }
+  .panel-corner.bl { bottom: -1px; left: -1px; transform: rotate(270deg); }
+
+  .panel-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  .panel-title {
+    margin: 2px 0 8px;
+    font-family: var(--serif);
+    max-width: 280px;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.14;
+    letter-spacing: 0.01em;
+  }
+
+  .panel-subtitle {
+    margin: 0;
+    color: rgba(72, 58, 44, 0.86);
+    font-size: 13px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .edit-project-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px 0 10px;
+    border: 1px solid rgba(167, 132, 82, 0.42);
+    border-radius: 8px;
+    background: rgba(255, 248, 236, 0.78);
+    color: #3d2c18;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(71, 47, 21, 0.08);
+  }
+
+  .edit-project-btn:hover,
+  .edit-project-btn:focus-visible {
+    border-color: rgba(154, 114, 48, 0.68);
+    background: rgba(255, 251, 244, 0.95);
+  }
+
+  .edit-project-btn img {
+    width: 18px;
+    height: 26px;
+    object-fit: contain;
+  }
+
+  .panel-section {
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(128, 98, 57, 0.18);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .section-title {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .section-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mini-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid rgba(167, 132, 82, 0.36);
+    border-radius: 6px;
+    background: rgba(255, 250, 242, 0.75);
+    color: #5c4528;
+    font-size: 12px;
     cursor: pointer;
   }
-  .nav-item:hover { color: #c17832; }
 
-  .floors {
-    position: absolute; inset: 0; pointer-events: none;
+  .mini-action:hover,
+  .mini-action:focus-visible {
+    border-color: rgba(154, 114, 48, 0.64);
+    background: rgba(255, 251, 244, 0.96);
   }
-  .floor-hit {
-    position: absolute;
-    pointer-events: auto;
-    cursor: pointer;
-    transition: background 180ms;
-  }
-  .floor-hit:hover { background: rgba(201, 168, 50, 0.18); }
-  .floor-hit[data-floor="1"] { left: 870px; top: 130px; width: 220px; height: 95px; }
-  .floor-hit[data-floor="2"] { left: 850px; top: 235px; width: 260px; height: 110px; }
-  .floor-hit[data-floor="3"] { left: 825px; top: 355px; width: 305px; height: 115px; }
-  .floor-hit[data-floor="4"] { left: 800px; top: 480px; width: 350px; height: 120px; }
-  .floor-hit[data-floor="5"] { left: 770px; top: 610px; width: 410px; height: 140px; }
 
-  .floor-tag {
-    position: absolute;
-    width: 220px;
-    padding: 10px 14px;
-    background: rgba(248, 244, 236, 0.88);
-    border-left: 3px solid #c17832;
-    border-radius: 2px;
+  .goal-list,
+  .milestone-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .goal-card {
+    display: grid;
+    grid-template-columns: 44px 1fr 24px;
+    gap: 12px;
+    align-items: center;
+    min-height: 54px;
+    padding: 6px 10px 6px 8px;
+    border: 1px solid rgba(154, 125, 83, 0.18);
+    border-radius: 10px;
+    background: rgba(255, 249, 240, 0.5);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
+  }
+
+  .goal-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(99, 114, 70, 0.08);
+    display: grid;
+    place-items: center;
+  }
+
+  .goal-icon-wrap img {
+    width: 32px;
+    height: 35px;
+    object-fit: contain;
+  }
+
+  .goal-card h3 {
+    margin: 0 0 2px;
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .goal-card p {
+    margin: 0;
+    color: rgba(86, 71, 56, 0.86);
     font-size: 11px;
-    pointer-events: auto;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .item-edit-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: transparent;
     cursor: pointer;
-    transition: transform 180ms, background 180ms;
+    opacity: 0.84;
   }
-  .floor-tag:hover { background: rgba(255, 248, 232, 0.95); transform: translateX(-4px); }
-  .floor-tag .name {
-    font-family: "Fraunces", Georgia, serif;
-    font-size: 14px; font-weight: 700; color: #3d3528;
-  }
-  .floor-tag .en {
-    font-size: 9px; color: #9a8e7a; letter-spacing: 0.2em; margin-left: 6px;
-  }
-  .floor-tag .pct {
-    font-family: Georgia, serif; font-weight: 700;
-    font-size: 13px; color: #c17832;
-    float: right;
-  }
-  .floor-tag .bar {
-    margin-top: 6px; height: 3px; background: rgba(181,168,142,0.3); border-radius: 2px; overflow: hidden;
-  }
-  .floor-tag .bar > i {
-    display: block; height: 100%; background: linear-gradient(90deg, #8a9a5e, #6b7c4e);
-  }
-  .floor-tag[data-floor="1"] { left: 1380px; top: 150px; }
-  .floor-tag[data-floor="2"] { left: 1380px; top: 270px; }
-  .floor-tag[data-floor="3"] { left: 1380px; top: 390px; }
-  .floor-tag[data-floor="4"] { left: 1380px; top: 510px; }
-  .floor-tag[data-floor="5"] { left: 1380px; top: 630px; }
 
-  .overall {
-    position: absolute;
-    right: 32px; top: 28px;
-    width: 240px;
-    background: rgba(248, 244, 236, 0.85);
-    border: 1px solid rgba(181, 168, 142, 0.5);
-    border-radius: 3px;
-    padding: 12px 16px;
-    pointer-events: auto;
+  .item-edit-btn:hover,
+  .item-edit-btn:focus-visible {
+    opacity: 1;
+    transform: translateY(-1px);
   }
-  .overall .label { font-size: 12px; color: #5a5040; }
-  .overall .pct {
-    float: right;
-    font-family: Georgia, serif; font-size: 22px; font-weight: 700;
-    color: #6b7c4e;
-    line-height: 1;
-  }
-  .overall .meta { font-size: 9px; color: #9a8e7a; margin-top: 6px; clear: both; }
 
-  .enter-btn {
+  .item-edit-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .milestone-card {
+    display: grid;
+    grid-template-columns: 36px 1fr auto 24px;
+    gap: 12px;
+    align-items: center;
+    min-height: 46px;
+  }
+
+  .milestone-tag {
+    width: 28px;
+    height: 52px;
+    object-fit: contain;
+    justify-self: center;
+    filter: drop-shadow(0 5px 10px rgba(37, 28, 18, 0.15));
+  }
+
+  .milestone-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .milestone-topline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .milestone-name {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .milestone-date {
+    color: rgba(101, 86, 69, 0.84);
+    font-size: 12px;
+  }
+
+  .milestone-bar {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: url("./UX/resource/home/progress_bar_bg.png") center/100% 100% no-repeat;
+  }
+
+  .milestone-bar-fill {
     position: absolute;
-    right: 32px; top: 280px;
-    padding: 10px 22px;
-    background: #6b7c4e;
-    color: #fff;
-    border: none; border-radius: 4px;
-    font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
+    inset: 0 auto 0 0;
+    width: var(--pct, 0%);
+    min-width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--fill-color), color-mix(in srgb, var(--fill-color) 68%, white));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--fill-color) 30%, transparent);
+  }
+
+  .milestone-pct {
+    min-width: 52px;
+    text-align: right;
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .milestone-note {
+    margin: 8px 0 0;
+    color: rgba(98, 82, 66, 0.82);
+    font-size: 10.5px;
+    line-height: 1.5;
+  }
+
+  .fold-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fold-item {
+    border-bottom: 1px solid rgba(128, 98, 57, 0.18);
+  }
+
+  .fold-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 2px 12px;
+    border: none;
+    background: transparent;
+    color: var(--ink);
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    pointer-events: auto;
+    font-family: var(--serif);
+    font-size: 16px;
+    text-align: left;
   }
-  .enter-btn:hover { background: #5e6e43; }
 
-  .grid {
-    position: absolute; inset: 0; pointer-events: none;
-    background-image:
-      linear-gradient(rgba(201,168,50,0.15) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(201,168,50,0.15) 1px, transparent 1px);
-    background-size: 100px 100px;
-    opacity: 0;
+  .fold-toggle span:last-child {
+    color: rgba(84, 67, 49, 0.72);
+    font-size: 18px;
+    transition: transform 180ms ease;
   }
-  body.show-grid .grid { opacity: 1; }
 
-  .hud {
-    position: fixed; left: 8px; bottom: 8px;
-    color: rgba(255,255,255,0.5);
-    font-size: 11px; font-family: monospace;
-    z-index: 1000;
+  .fold-toggle[aria-expanded="true"] span:last-child {
+    transform: rotate(180deg);
+  }
+
+  .fold-content {
+    max-height: 0;
+    overflow: hidden;
+    color: rgba(84, 67, 49, 0.92);
+    font-size: 12px;
+    line-height: 1.7;
+    transition: max-height 220ms ease, padding-bottom 220ms ease;
+  }
+
+  .fold-item.is-open .fold-content {
+    max-height: 120px;
+    padding-bottom: 12px;
+  }
+
+  .panel-footer-art {
+    margin-top: auto;
+    height: 12px;
+    border-radius: 0 0 6px 6px;
+    overflow: hidden;
+    opacity: 0.9;
+  }
+
+  .panel-footer-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: bottom center;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .progress-area {
+    position: absolute;
+    top: 30px;
+    right: 32px;
+    width: 194px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    z-index: 5;
+  }
+
+  .progress-card {
+    position: relative;
+    min-height: 120px;
+    padding: 18px 16px 14px;
+    background: url("./UX/resource/home/progress_card_bg.png") center/100% 100% no-repeat;
+    filter: drop-shadow(0 12px 18px rgba(31, 22, 15, 0.12));
+  }
+
+  .progress-card h2 {
+    margin: 0 0 14px;
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .progress-value {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: 6px;
+    color: #3f6d37;
+  }
+
+  .progress-value strong {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .progress-value span {
+    font-size: 12px;
+  }
+
+  .progress-meta {
+    text-align: right;
+    color: rgba(87, 70, 50, 0.85);
+    font-size: 12px;
+  }
+
+  .progress-line {
+    position: relative;
+    height: 10px;
+    margin-top: 14px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: url("./UX/resource/home/progress_bar_bg.png") center/100% 100% no-repeat;
+  }
+
+  .progress-line-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--pct, 0%);
+    background: url("./UX/resource/home/progress_bar_fill.png") left center/100% 100% no-repeat;
+    border-radius: inherit;
+  }
+
+  .progress-detail-btn {
+    align-self: flex-end;
+    width: 108px;
+    height: 36px;
+    border: none;
+    background: url("./UX/resource/home/progress_button.png") center/100% 100% no-repeat;
+    cursor: pointer;
+  }
+
+  .tower-hitbox {
+    position: absolute;
+    top: 82px;
+    left: 474px;
+    width: 724px;
+    height: 826px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 1;
+  }
+
+  .tower-hitbox:hover,
+  .tower-hitbox:focus-visible {
+    outline: 2px solid rgba(251, 243, 216, 0.78);
+    outline-offset: 8px;
+  }
+
+  .layer-links {
+    position: absolute;
+    top: 198px;
+    right: 160px;
+    width: 180px;
+    height: 580px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .layer-links::before {
+    content: "";
+    position: absolute;
+    top: 16px;
+    bottom: 52px;
+    left: 76px;
+    border-left: 2px dotted rgba(103, 84, 60, 0.46);
+  }
+
+  .layer-links .node {
+    position: absolute;
+    left: 70px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(90, 72, 52, 0.72);
+    box-shadow: 0 0 0 4px rgba(250, 247, 238, 0.28);
+  }
+
+  .layer-links .branch {
+    position: absolute;
+    left: 76px;
+    width: 88px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(109, 88, 61, 0.54) 0 6px, transparent 6px 12px);
+  }
+
+  .layer-links .node:nth-child(1),
+  .layer-links .branch:nth-child(2) { top: 54px; }
+  .layer-links .node:nth-child(3),
+  .layer-links .branch:nth-child(4) { top: 180px; }
+  .layer-links .node:nth-child(5),
+  .layer-links .branch:nth-child(6) { top: 306px; }
+  .layer-links .node:nth-child(7),
+  .layer-links .branch:nth-child(8) { top: 432px; }
+  .layer-links .node:nth-child(9),
+  .layer-links .branch:nth-child(10) { top: 558px; }
+
+  .layer-stack {
+    position: absolute;
+    top: 190px;
+    right: 38px;
+    width: 312px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 4;
+  }
+
+  .layer-card {
+    position: relative;
+    display: block;
+    width: 260px;
+    height: 92px;
+    margin-left: 20px;
+    padding: 10px 16px 12px 44px;
+    border: none;
+    background: url("./UX/resource/home/right_card_bg.png") center/100% 100% no-repeat;
+    text-align: left;
+    cursor: pointer;
+    filter: drop-shadow(0 8px 16px rgba(44, 31, 17, 0.12));
+    transition: transform 180ms ease, filter 180ms ease, background-image 180ms ease;
+  }
+
+  .layer-card:hover,
+  .layer-card:focus-visible,
+  .layer-card.is-active {
+    transform: translateX(-6px);
+    background-image: url("./UX/resource/home/right_card_active.png");
+    filter: drop-shadow(0 10px 24px rgba(88, 62, 31, 0.24));
+  }
+
+  .layer-card-tag {
+    position: absolute;
+    top: 5px;
+    left: -2px;
+    width: 32px;
+    height: 58px;
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  .layer-card-name {
+    position: absolute;
+    top: 15px;
+    left: 44px;
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .layer-card-en {
+    position: absolute;
+    top: 43px;
+    left: 44px;
+    color: rgba(105, 83, 59, 0.84);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .layer-card-pct {
+    position: absolute;
+    left: 44px;
+    top: 58px;
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent, #4b7440);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>
 </head>
 <body>
-  <div class="stage" id="stage">
-    <img class="layer-bg" src="./mockup/assets/bg/home-bg.png" alt="" />
+  <div class="viewport">
+    <div class="stage">
+      <img class="home-bg" src="./UX/resource/home/home-background-stage.png" alt="塔项目首页背景" />
 
-    <div class="floors">
-      <div class="floor-hit" data-floor="1" title="愿景层"></div>
-      <div class="floor-hit" data-floor="2" title="设计层"></div>
-      <div class="floor-hit" data-floor="3" title="协同层"></div>
-      <div class="floor-hit" data-floor="4" title="实现层"></div>
-      <div class="floor-hit" data-floor="5" title="基础设施层"></div>
+      <aside class="home-panel" aria-label="项目概览">
+        <img class="panel-corner tl" src="./UX/resource/home/corner_ornament.png" alt="" />
+        <img class="panel-corner tr" src="./UX/resource/home/corner_ornament.png" alt="" />
+        <img class="panel-corner br" src="./UX/resource/home/corner_ornament.png" alt="" />
+        <img class="panel-corner bl" src="./UX/resource/home/corner_ornament.png" alt="" />
 
-      <div class="floor-tag" data-floor="1" data-layer="vision">
-        <span class="pct">—</span>
-        <div><span class="name">愿景层</span><span class="en">VISION</span></div>
-        <div class="bar"><i style="width:0%"></i></div>
+        <div class="panel-body">
+          <header class="panel-header">
+            <div>
+              <h1 class="panel-title" id="projectName">Cloud-Native DevOps Platform</h1>
+              <p class="panel-subtitle" id="projectSubtitle">打造覆盖全研发生命周期的云原生 DevOps 平台</p>
+            </div>
+            <button type="button" class="edit-project-btn" id="editProjectBtn">
+              <img src="./UX/resource/home/edit_button.png" alt="" />
+              <span>编辑</span>
+            </button>
+          </header>
+
+          <section class="panel-section">
+            <div class="section-head">
+              <h2 class="section-title">项目目标</h2>
+              <div class="section-tools">
+                <button type="button" class="mini-action" id="addGoalBtn">＋ 添加目标</button>
+              </div>
+            </div>
+            <div class="goal-list" id="goalList"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-head">
+              <h2 class="section-title">里程碑</h2>
+              <div class="section-tools">
+                <button type="button" class="mini-action" id="addMilestoneBtn">＋ 添加里程碑</button>
+              </div>
+            </div>
+            <div class="milestone-list" id="milestoneList"></div>
+            <p class="milestone-note">进度基于已打上对应里程碑标签事项的状态与权重计算。</p>
+          </section>
+
+          <div class="fold-stack" id="foldStack"></div>
+
+          <div class="panel-footer-art" aria-hidden="true">
+            <img src="./UX/resource/home/panel_landscape.png" alt="" />
+          </div>
+        </div>
+      </aside>
+
+      <section class="progress-area" aria-label="整体进度">
+        <div class="progress-card" id="progressCard">
+          <h2>整体进度</h2>
+          <div class="progress-value">
+            <strong id="overallPct">0%</strong>
+            <span id="overallCount">0/0 完成</span>
+          </div>
+          <div class="progress-meta" id="overallMeta">事项推进中</div>
+          <div class="progress-line">
+            <div class="progress-line-fill" id="overallFill"></div>
+          </div>
+        </div>
+        <button type="button" class="progress-detail-btn" id="detailBtn">
+          <span class="sr-only">查看详情</span>
+        </button>
+      </section>
+
+      <div class="layer-links" aria-hidden="true">
+        <span class="node"></span><span class="branch"></span>
+        <span class="node"></span><span class="branch"></span>
+        <span class="node"></span><span class="branch"></span>
+        <span class="node"></span><span class="branch"></span>
+        <span class="node"></span><span class="branch"></span>
       </div>
-      <div class="floor-tag" data-floor="2" data-layer="design">
-        <span class="pct">—</span>
-        <div><span class="name">设计层</span><span class="en">DESIGN</span></div>
-        <div class="bar"><i style="width:0%"></i></div>
-      </div>
-      <div class="floor-tag" data-floor="3" data-layer="coordination">
-        <span class="pct">—</span>
-        <div><span class="name">协同层</span><span class="en">COORDINATION</span></div>
-        <div class="bar"><i style="width:0%"></i></div>
-      </div>
-      <div class="floor-tag" data-floor="4" data-layer="implementation">
-        <span class="pct">—</span>
-        <div><span class="name">实现层</span><span class="en">IMPLEMENTATION</span></div>
-        <div class="bar"><i style="width:0%"></i></div>
-      </div>
-      <div class="floor-tag" data-floor="5" data-layer="infrastructure">
-        <span class="pct">—</span>
-        <div><span class="name">基础设施层</span><span class="en">INFRASTRUCTURE</span></div>
-        <div class="bar"><i style="width:0%"></i></div>
-      </div>
+
+      <div class="layer-stack" id="layerStack"></div>
+
+      <button type="button" class="tower-hitbox" id="towerBtn" aria-label="进入事项大盘"></button>
     </div>
-
-    <aside class="panel-left">
-      <div>
-        <h1 id="projName">—</h1>
-        <div class="subtitle" id="projGoal">—</div>
-      </div>
-
-      <div>
-        <div class="section-title">项目介绍</div>
-        <p id="projAccept">—</p>
-      </div>
-
-      <div>
-        <div class="section-title">操作</div>
-        <div class="nav-item" id="navDashboard">→ 进入事项大盘</div>
-        <div class="nav-item" id="navAdd">+ 新增事项</div>
-        <div class="nav-item" id="navImport">↑ Excel 导入</div>
-        <div class="nav-item" id="navOpenJson">↥ 打开 tower.json</div>
-        <div class="nav-item" id="navSaveJson">↓ 保存 tower.json</div>
-        <div class="nav-item" id="navReport">📋 今日日报</div>
-        <div class="nav-item" id="navEditMeta">⚙ 编辑项目信息</div>
-        <div id="fileMeta" style="margin-top:8px;font-size:11px;color:#9a8e7a;line-height:1.5"></div>
-      </div>
-
-      <div>
-        <div class="section-title">楼段一览</div>
-        <div id="layerList" style="display:flex;flex-direction:column;gap:6px;font-size:12px"></div>
-      </div>
-    </aside>
-
-    <div class="overall" style="cursor:pointer" id="overallBox">
-      <div class="pct" id="overallPct">—</div>
-      <div class="label">整体进度</div>
-      <div class="meta" id="overallMeta">—</div>
-    </div>
-
-    <button class="enter-btn" id="enterBtn">进入事项大盘 →</button>
-
-    <img class="ref" alt="参考" />
-    <div class="grid"></div>
   </div>
 
-  <div class="hud">D=对照参考图  G=网格  +/-=缩放</div>
-
 <script type="module">
-  import { Store, LAYERS } from './js/store.js';
-  import { openDrawer, openModal, toast, confirm } from './js/ui.js';
+  import { Store, LAYERS, uuid } from './js/store.js';
+  import { openDrawer, toast, confirm } from './js/ui.js';
+
+  const GOAL_ICONS = [
+    './UX/resource/home/goal_icon.png',
+    './UX/resource/home/goal_icon_alt.png',
+    './UX/resource/home/goal_icon_alt2.png',
+    './UX/resource/home/goal_icon_alt3.png',
+  ];
+
+  const HOME_LAYER_ORDER = ['vision', 'coordination', 'implementation', 'infrastructure', 'design'];
+  const LAYER_THEME = {
+    vision: { tag: './UX/resource/home/right_tag_green.png', accent: '#557b48' },
+    coordination: { tag: './UX/resource/home/right_tag_amber.png', accent: '#b88635' },
+    implementation: { tag: './UX/resource/home/right_tag_red.png', accent: '#9c4e36' },
+    infrastructure: { tag: './UX/resource/home/right_tag_olive.png', accent: '#68704c' },
+    design: { tag: './UX/resource/home/right_tag_dark.png', accent: '#585552' },
+  };
+
+  const foldState = {
+    scope: false,
+    milestoneNotes: false,
+    docs: false,
+  };
 
   function resize() {
-    const sw = 1672, sh = 941;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const scale = Math.min(vw / sw, vh / sh);
+    const scale = Math.min(window.innerWidth / 1672, window.innerHeight / 941);
     document.documentElement.style.setProperty('--scale', scale);
   }
-  window.addEventListener('resize', resize); resize();
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'd' || e.key === 'D') document.body.classList.toggle('show-ref');
-    if (e.key === 'g' || e.key === 'G') document.body.classList.toggle('show-grid');
-  });
+  function esc(text) {
+    return String(text ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
-  document.querySelectorAll('.floor-hit, .floor-tag').forEach(el => {
-    el.addEventListener('mouseenter', () => {
-      const f = el.dataset.floor;
-      document.querySelectorAll(`[data-floor="${f}"]`).forEach(x => x.classList.add('active'));
-    });
-    el.addEventListener('mouseleave', () => {
-      document.querySelectorAll('.active').forEach(x => x.classList.remove('active'));
-    });
-    el.addEventListener('click', () => {
-      const layer = el.dataset.layer || el.closest('[data-layer]')?.dataset.layer
-        || LAYERS[(parseInt(el.dataset.floor, 10) - 1) || 0]?.key;
-      location.href = `./dashboard.html${layer ? `?layer=${layer}` : ''}`;
-    });
-  });
+  function milestoneTheme(entry, index) {
+    if (entry.pct >= 70) return { tag: './UX/resource/home/right_tag_green.png', fill: '#557b48' };
+    if (entry.pct >= 40) return { tag: './UX/resource/home/right_tag_amber.png', fill: '#b88635' };
+    if (entry.pct > 0) return { tag: './UX/resource/home/right_tag_red.png', fill: '#9c4e36' };
+    return index % 2
+      ? { tag: './UX/resource/home/right_tag_dark.png', fill: '#69635b' }
+      : { tag: './UX/resource/home/right_tag_olive.png', fill: '#676f4e' };
+  }
 
-  function render() {
-    const p = Store.project;
-    document.getElementById('projName').textContent = p.name;
-    document.getElementById('projGoal').textContent = p.goal;
-    document.getElementById('projAccept').textContent = p.acceptanceCriteria || '（未填写验收标准）';
+  function scopeSummary(project) {
+    return project.acceptanceCriteria || '覆盖需求、设计、协同、实现与基础设施全流程。';
+  }
 
-    const ov = Store.overallProgress();
-    document.getElementById('overallPct').textContent = ov.pct + '%';
-    document.getElementById('overallMeta').textContent = `${ov.doneCount}/${ov.count} 项 · 共 ${ov.total} 人天`;
-    const fileMeta = document.getElementById('fileMeta');
-    fileMeta.textContent = Store.boundFileName()
-      ? `当前数据文件：${Store.boundFileName()}`
-      : (Store.fileSystemSupported() ? '当前正在使用浏览器本地草稿，可随时保存为 tower.json' : '当前正在使用浏览器本地草稿，浏览器仅支持下载 JSON 副本');
+  function summarizeGoal(text) {
+    const clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!clean) return '打造覆盖全研发生命周期的云原生 DevOps 平台';
+    return clean.length > 38 ? `${clean.slice(0, 38)}...` : clean;
+  }
 
-    document.querySelectorAll('.floor-tag').forEach(tag => {
-      const layer = tag.dataset.layer;
-      const lp = Store.layerProgress(layer);
-      tag.querySelector('.pct').textContent = lp.pct + '%';
-      tag.querySelector('.bar > i').style.width = lp.pct + '%';
-    });
+  function docsSummary() {
+    return '主页数据与事项大盘、详情页、导入页共享同一份 tower.json，保存后会同步生效。';
+  }
 
-    const list = document.getElementById('layerList');
-    list.innerHTML = '';
-    LAYERS.forEach(L => {
-      const lp = Store.layerProgress(L.key);
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;justify-content:space-between;padding:4px 6px;border-bottom:1px dashed rgba(181,168,142,0.3);cursor:pointer';
-      row.innerHTML = `<span>${L.name}</span><span style="color:#7a6e5d">${lp.count} 项 · ${lp.pct}%</span>`;
-      row.onclick = () => location.href = `./dashboard.html?layer=${L.key}`;
-      list.appendChild(row);
+  function milestonesSummary(items) {
+    if (!items.length) return '当前还没有里程碑标签，可点击“添加里程碑”建立。';
+    return items.map((entry) => `${entry.name}${entry.date ? `（${entry.date}）` : ''}：${entry.pct}%`).join('；');
+  }
+
+  function renderGoals(goals) {
+    const goalList = document.getElementById('goalList');
+    if (!goals.length) {
+      goalList.innerHTML = '<div class="goal-card"><div></div><div><h3>暂无项目目标</h3><p>点击右上角编辑，补充本项目的目标描述。</p></div><span></span></div>';
+      return;
+    }
+    goalList.innerHTML = goals.map((goal, index) => `
+      <article class="goal-card">
+        <div class="goal-icon-wrap">
+          <img src="${GOAL_ICONS[index % GOAL_ICONS.length]}" alt="" />
+        </div>
+        <div>
+          <h3>${esc(goal.title)}</h3>
+          <p>${esc(goal.description || '待补充目标说明')}</p>
+        </div>
+        <button type="button" class="item-edit-btn" data-edit-section="goals" aria-label="编辑目标 ${esc(goal.title)}">
+          <img src="./UX/resource/home/edit_button.png" alt="" />
+        </button>
+      </article>
+    `).join('');
+  }
+
+  function renderMilestones(milestones) {
+    const wrap = document.getElementById('milestoneList');
+    if (!milestones.length) {
+      wrap.innerHTML = '<div class="milestone-card"><span></span><div class="milestone-main"><div class="milestone-name">暂无里程碑</div><div class="milestone-date">点击右侧按钮新增</div></div><span class="milestone-pct">0%</span><span></span></div>';
+      return;
+    }
+
+    wrap.innerHTML = milestones.map((entry, index) => {
+      const theme = milestoneTheme(entry, index);
+      return `
+        <article class="milestone-card">
+          <img class="milestone-tag" src="${theme.tag}" alt="" />
+          <div class="milestone-main">
+            <div class="milestone-topline">
+              <span class="milestone-name">${esc(entry.name)}</span>
+              <span class="milestone-date">${entry.date ? esc(entry.date) : '未定时间'}</span>
+            </div>
+            <div class="milestone-bar" style="--pct:${entry.pct}%;--fill-color:${theme.fill}">
+              <div class="milestone-bar-fill"></div>
+            </div>
+          </div>
+          <span class="milestone-pct" style="color:${theme.fill}">${entry.pct}%</span>
+          <button type="button" class="item-edit-btn" data-edit-section="milestones" aria-label="编辑里程碑 ${esc(entry.name)}">
+            <img src="./UX/resource/home/edit_button.png" alt="" />
+          </button>
+        </article>
+      `;
+    }).join('');
+  }
+
+  function renderFolds(project, milestones) {
+    const items = [
+      { key: 'scope', title: '范围', content: scopeSummary(project) },
+      { key: 'milestoneNotes', title: '里程碑说明', content: milestonesSummary(milestones) },
+      { key: 'docs', title: '相关文档', content: docsSummary() },
+    ];
+
+    document.getElementById('foldStack').innerHTML = items.map((item) => `
+      <section class="fold-item ${foldState[item.key] ? 'is-open' : ''}">
+        <button type="button" class="fold-toggle" data-fold="${item.key}" aria-expanded="${foldState[item.key]}">
+          <span>${item.title}</span>
+          <span>⌄</span>
+        </button>
+        <div class="fold-content">${esc(item.content)}</div>
+      </section>
+    `).join('');
+  }
+
+  function renderProgress() {
+    const overall = Store.overallProgress();
+    document.getElementById('overallPct').textContent = `${overall.pct}%`;
+    document.getElementById('overallCount').textContent = `${overall.doneCount}/${overall.count} 完成`;
+    document.getElementById('overallMeta').textContent = overall.pct >= 70 ? '推进稳定，可进入收束阶段' : overall.pct >= 40 ? '重点事项持续推进中' : '仍处于关键建设阶段';
+    document.getElementById('overallFill').style.setProperty('--pct', `${overall.pct}%`);
+  }
+
+  function renderLayers(activeLayer = '') {
+    const layerStack = document.getElementById('layerStack');
+    layerStack.innerHTML = HOME_LAYER_ORDER.map((key) => {
+      const layer = LAYERS.find((entry) => entry.key === key);
+      const progress = Store.layerProgress(key);
+      const theme = LAYER_THEME[key];
+      return `
+        <button
+          type="button"
+          class="layer-card ${activeLayer === key ? 'is-active' : ''}"
+          data-layer="${key}"
+          style="--accent:${theme.accent}"
+          aria-label="进入${layer.name}"
+        >
+          <img class="layer-card-tag" src="${theme.tag}" alt="" />
+          <div class="layer-card-name">${layer.name}</div>
+          <span class="layer-card-en">${layer.en}</span>
+          <span class="layer-card-pct">${progress.pct}%</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  function renderHome() {
+    const project = Store.project;
+    const goals = Store.goals;
+    const milestones = Store.milestoneSummaries();
+    const activeLayer = new URLSearchParams(location.search).get('layer') || '';
+
+    document.getElementById('projectName').textContent = project.name || 'Tower 项目';
+    document.getElementById('projectSubtitle').textContent = summarizeGoal(project.goal);
+
+    renderGoals(goals);
+    renderMilestones(milestones);
+    renderFolds(project, milestones);
+    renderProgress();
+    renderLayers(activeLayer);
+  }
+
+  function openProjectEditor(section = 'meta') {
+    const project = Store.project;
+    const draft = {
+      name: project.name || '',
+      goal: project.goal || '',
+      acceptanceCriteria: project.acceptanceCriteria || '',
+      goals: Store.goals.map((item) => ({ ...item })),
+      milestones: Store.milestones.map((entry) => ({ id: entry.id, name: entry.name, date: entry.date || '' })),
+    };
+
+    openDrawer({
+      title: '编辑首页信息',
+      width: 560,
+      render: (body, { close }) => {
+        body.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:18px;color:#3a2a1a;font-size:13px">
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:700;color:#6b4921">项目名称</span>
+              <input id="metaName" value="${esc(draft.name)}" style="height:42px;padding:0 14px;border:1px solid #c8a772;border-radius:10px;background:#fffaf1" />
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:700;color:#6b4921">项目目标摘要</span>
+              <textarea id="metaGoal" style="min-height:88px;padding:12px 14px;border:1px solid #c8a772;border-radius:10px;background:#fffaf1;resize:vertical;line-height:1.7">${esc(draft.goal)}</textarea>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:700;color:#6b4921">范围说明</span>
+              <textarea id="metaScope" style="min-height:72px;padding:12px 14px;border:1px solid #c8a772;border-radius:10px;background:#fffaf1;resize:vertical;line-height:1.7">${esc(draft.acceptanceCriteria)}</textarea>
+            </label>
+            <section style="padding:14px;border-radius:14px;border:1px solid rgba(185,141,78,.28);background:rgba(255,251,242,.74)">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+                <div>
+                  <div style="font-family:'Noto Serif SC',serif;font-size:17px;font-weight:800;color:#4d3317">项目目标卡片</div>
+                  <div style="margin-top:4px;color:#8c7150;font-size:12px">首页左侧会按顺序展示这些目标。</div>
+                </div>
+                <button id="addGoalRowBtn" type="button" style="height:38px;padding:0 14px;border:1px solid #c8a772;border-radius:10px;background:#f7efe0;color:#6b4820;cursor:pointer">新增</button>
+              </div>
+              <div id="goalRows" style="display:flex;flex-direction:column;gap:10px"></div>
+            </section>
+            <section style="padding:14px;border-radius:14px;border:1px solid rgba(185,141,78,.28);background:rgba(255,251,242,.74)">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+                <div>
+                  <div style="font-family:'Noto Serif SC',serif;font-size:17px;font-weight:800;color:#4d3317">里程碑标签</div>
+                  <div style="margin-top:4px;color:#8c7150;font-size:12px">事项被打上这些标签后，首页会自动计算对应进度。</div>
+                </div>
+                <button id="addMilestoneRowBtn" type="button" style="height:38px;padding:0 14px;border:1px solid #c8a772;border-radius:10px;background:#f7efe0;color:#6b4820;cursor:pointer">新增</button>
+              </div>
+              <div id="milestoneRows" style="display:flex;flex-direction:column;gap:10px"></div>
+            </section>
+            <div style="display:flex;justify-content:flex-end;gap:10px">
+              <button id="resetBtn" type="button" style="height:40px;padding:0 14px;border:1px solid #c8a772;border-radius:10px;background:#f7efe0;color:#6b4820;cursor:pointer">重置示例数据</button>
+              <button id="saveBtn" type="button" style="height:40px;padding:0 16px;border:1px solid rgba(110,72,22,.45);border-radius:10px;background:linear-gradient(180deg,#b38744 0%,#8d6428 100%);color:#fff4df;cursor:pointer">保存</button>
+            </div>
+          </div>
+        `;
+
+        const goalRows = body.querySelector('#goalRows');
+        const milestoneRows = body.querySelector('#milestoneRows');
+        const nameInput = body.querySelector('#metaName');
+        const goalInput = body.querySelector('#metaGoal');
+        const scopeInput = body.querySelector('#metaScope');
+
+        function paintGoals() {
+          if (!draft.goals.length) {
+            goalRows.innerHTML = '<div style="padding:12px;border-radius:12px;border:1px dashed rgba(185,141,78,.4);color:#8c7150">暂无目标卡片，新增后会出现在首页左侧。</div>';
+            return;
+          }
+          goalRows.innerHTML = draft.goals.map((goal, index) => `
+            <div style="padding:12px;border-radius:12px;background:#fffdf8;border:1px solid rgba(185,141,78,.24)">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <input data-goal-title="${index}" value="${esc(goal.title || '')}" placeholder="目标标题" style="height:38px;padding:0 12px;border:1px solid #d3b382;border-radius:9px;background:#fffaf1" />
+                  <textarea data-goal-desc="${index}" placeholder="目标说明" style="min-height:68px;padding:10px 12px;border:1px solid #d3b382;border-radius:9px;background:#fffaf1;resize:vertical">${esc(goal.description || '')}</textarea>
+                </div>
+                <button data-goal-remove="${index}" type="button" style="height:38px;padding:0 12px;border:1px solid #d3b382;border-radius:9px;background:#f7efe0;color:#6b4820;cursor:pointer">删除</button>
+              </div>
+            </div>
+          `).join('');
+
+          goalRows.querySelectorAll('[data-goal-title]').forEach((input) => {
+            input.addEventListener('input', () => {
+              draft.goals[Number(input.dataset.goalTitle)].title = input.value;
+            });
+          });
+          goalRows.querySelectorAll('[data-goal-desc]').forEach((input) => {
+            input.addEventListener('input', () => {
+              draft.goals[Number(input.dataset.goalDesc)].description = input.value;
+            });
+          });
+          goalRows.querySelectorAll('[data-goal-remove]').forEach((button) => {
+            button.onclick = () => {
+              draft.goals.splice(Number(button.dataset.goalRemove), 1);
+              paintGoals();
+            };
+          });
+        }
+
+        function paintMilestones() {
+          if (!draft.milestones.length) {
+            milestoneRows.innerHTML = '<div style="padding:12px;border-radius:12px;border:1px dashed rgba(185,141,78,.4);color:#8c7150">暂无里程碑，新增后可在事项编辑页给事项打标签。</div>';
+            return;
+          }
+          milestoneRows.innerHTML = draft.milestones.map((milestone, index) => `
+            <div style="padding:12px;border-radius:12px;background:#fffdf8;border:1px solid rgba(185,141,78,.24)">
+              <div style="display:grid;grid-template-columns:128px 1fr auto;gap:10px;align-items:center">
+                <input data-ms-date="${index}" type="date" value="${milestone.date || ''}" style="height:38px;padding:0 10px;border:1px solid #d3b382;border-radius:9px;background:#fffaf1" />
+                <input data-ms-name="${index}" value="${esc(milestone.name || '')}" placeholder="里程碑名称" style="height:38px;padding:0 12px;border:1px solid #d3b382;border-radius:9px;background:#fffaf1" />
+                <button data-ms-remove="${index}" type="button" style="height:38px;padding:0 12px;border:1px solid #d3b382;border-radius:9px;background:#f7efe0;color:#6b4820;cursor:pointer">删除</button>
+              </div>
+            </div>
+          `).join('');
+
+          milestoneRows.querySelectorAll('[data-ms-date]').forEach((input) => {
+            input.addEventListener('input', () => {
+              draft.milestones[Number(input.dataset.msDate)].date = input.value;
+            });
+          });
+          milestoneRows.querySelectorAll('[data-ms-name]').forEach((input) => {
+            input.addEventListener('input', () => {
+              draft.milestones[Number(input.dataset.msName)].name = input.value;
+            });
+          });
+          milestoneRows.querySelectorAll('[data-ms-remove]').forEach((button) => {
+            button.onclick = () => {
+              draft.milestones.splice(Number(button.dataset.msRemove), 1);
+              paintMilestones();
+            };
+          });
+        }
+
+        paintGoals();
+        paintMilestones();
+
+        if (section === 'goals') {
+          goalRows.scrollIntoView({ block: 'center' });
+        }
+        if (section === 'milestones') {
+          milestoneRows.scrollIntoView({ block: 'center' });
+        }
+
+        body.querySelector('#addGoalRowBtn').onclick = () => {
+          draft.goals.push({ id: `draft_goal_${uuid('g')}`, title: '', description: '' });
+          paintGoals();
+        };
+
+        body.querySelector('#addMilestoneRowBtn').onclick = () => {
+          draft.milestones.push({ id: `draft_ms_${uuid('m')}`, name: '', date: '' });
+          paintMilestones();
+        };
+
+        body.querySelector('#saveBtn').onclick = () => {
+          const name = nameInput.value.trim();
+          if (!name) {
+            toast('项目名称不能为空', { type: 'error' });
+            nameInput.focus();
+            return;
+          }
+          const goals = draft.goals
+            .map((goal, index) => ({
+              id: goal.id && !String(goal.id).startsWith('draft_goal_') ? String(goal.id) : `goal_${uuid(`g${index}`)}`,
+              title: String(goal.title || '').trim(),
+              description: String(goal.description || '').trim(),
+            }))
+            .filter((goal) => goal.title || goal.description);
+          const milestones = draft.milestones
+            .map((entry, index) => ({
+              id: entry.id && !String(entry.id).startsWith('draft_ms_') ? String(entry.id) : `ms_${uuid(`m${index}`)}`,
+              name: String(entry.name || '').trim(),
+              date: String(entry.date || '').trim(),
+            }))
+            .filter((entry) => entry.name);
+
+          Store.setProjectMeta({
+            name,
+            goal: goalInput.value.trim(),
+            acceptanceCriteria: scopeInput.value.trim(),
+            goals,
+            milestones,
+          });
+          close();
+          toast('首页信息已保存', { type: 'success' });
+        };
+
+        body.querySelector('#resetBtn').onclick = async () => {
+          const ok = await confirm({
+            title: '重置数据',
+            message: '将恢复演示数据，是否继续？',
+            danger: true,
+            okText: '重置',
+          });
+          if (!ok) return;
+          Store.resetToSeed();
+          close();
+          toast('已恢复演示数据', { type: 'success' });
+        };
+      },
     });
   }
 
-  document.getElementById('enterBtn').onclick = () => location.href = './dashboard.html';
-  document.getElementById('navDashboard').onclick = () => location.href = './dashboard.html';
-  document.getElementById('overallBox').onclick = () => location.href = './dashboard.html';
+  function bindEvents() {
+    document.getElementById('editProjectBtn').onclick = () => openProjectEditor('meta');
+    document.getElementById('addGoalBtn').onclick = () => openProjectEditor('goals');
+    document.getElementById('addMilestoneBtn').onclick = () => openProjectEditor('milestones');
+    document.getElementById('towerBtn').onclick = () => { location.href = './dashboard.html'; };
+    document.getElementById('detailBtn').onclick = () => { location.href = './dashboard.html'; };
+    document.getElementById('progressCard').onclick = () => { location.href = './dashboard.html'; };
 
-  document.getElementById('navAdd').onclick = () => {
-    location.href = './item-form.html';
-  };
-  document.getElementById('navImport').onclick = () => location.href = './mockup/import.html';
-  document.getElementById('navOpenJson').onclick = async () => {
-    try {
-      const loaded = await Store.openProjectFile();
-      if (!loaded) return;
-      render();
-      toast(`已打开 ${Store.boundFileName() || 'tower.json'}`, { type: 'success' });
-    } catch (err) {
-      console.error(err);
-      toast(`打开失败：${err.message}`, { type: 'error' });
-    }
-  };
-  document.getElementById('navSaveJson').onclick = async () => {
-    try {
-      const result = await Store.saveProjectFile();
-      if (!result) return;
-      render();
-      toast(result.kind === 'file' ? `已保存到 ${result.name}` : `已下载 ${result.name}`, { type: 'success' });
-    } catch (err) {
-      console.error(err);
-      toast(`保存失败：${err.message}`, { type: 'error' });
-    }
-  };
-  document.getElementById('navReport').onclick = () => {
-    const md = Store.buildDailyReport();
-    openModal({
-      title: '今日日报', width: 640, render: (body) => {
-        const wrap = document.createElement('div');
-        wrap.innerHTML = `
-          <textarea readonly style="width:100%;height:380px;font-family:monospace;font-size:12px;padding:12px;border:1px solid #b89868;background:#fffaf0;color:#3a2a1a;border-radius:3px;resize:vertical">${md}</textarea>
-          <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
-            <button id="copyBtn" style="padding:6px 16px;border:none;background:#5a7a3e;color:#f6ecd2;border-radius:3px;cursor:pointer">复制 Markdown</button>
-          </div>`;
-        body.appendChild(wrap);
-        wrap.querySelector('#copyBtn').onclick = () => {
-          navigator.clipboard.writeText(md).then(() => toast('已复制', { type: 'success' }));
-        };
+    document.addEventListener('click', (event) => {
+      const foldBtn = event.target.closest('[data-fold]');
+      if (foldBtn) {
+        const key = foldBtn.dataset.fold;
+        foldState[key] = !foldState[key];
+        renderHome();
+        return;
+      }
+
+      const layerCard = event.target.closest('[data-layer]');
+      if (layerCard) {
+        location.href = `./dashboard.html?layer=${encodeURIComponent(layerCard.dataset.layer)}`;
+        return;
+      }
+
+      const editSection = event.target.closest('[data-edit-section]');
+      if (editSection) {
+        openProjectEditor(editSection.dataset.editSection);
       }
     });
-  };
+  }
 
-  document.getElementById('navEditMeta').onclick = () => {
-    const p = Store.project;
-    openDrawer({
-      title: '项目信息', width: 480, render: (body, { close }) => {
-        body.innerHTML = `
-          <div style="display:flex;flex-direction:column;gap:14px;font-size:13px">
-            <label>项目名称<input id="fName" value="${p.name || ''}" style="display:block;width:100%;margin-top:4px;padding:6px 10px;border:1px solid #b89868;border-radius:3px;font-size:13px"/></label>
-            <label>项目目标<textarea id="fGoal" rows="2" style="display:block;width:100%;margin-top:4px;padding:6px 10px;border:1px solid #b89868;border-radius:3px;font-size:13px;resize:vertical">${p.goal || ''}</textarea></label>
-            <label>验收标准<textarea id="fAccept" rows="4" style="display:block;width:100%;margin-top:4px;padding:6px 10px;border:1px solid #b89868;border-radius:3px;font-size:13px;resize:vertical">${p.acceptanceCriteria || ''}</textarea></label>
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-              <button id="resetSeed" style="padding:6px 14px;border:1px solid #b89868;background:transparent;color:#3a2a1a;border-radius:3px;cursor:pointer">重置示例数据</button>
-              <button id="saveBtn" style="padding:6px 16px;border:none;background:#5a7a3e;color:#f6ecd2;border-radius:3px;cursor:pointer">保存</button>
-            </div>
-          </div>`;
-        body.querySelector('#saveBtn').onclick = () => {
-          Store.setProjectMeta({
-            name: body.querySelector('#fName').value.trim(),
-            goal: body.querySelector('#fGoal').value.trim(),
-            acceptanceCriteria: body.querySelector('#fAccept').value.trim(),
-          });
-          render(); close(); toast('已保存', { type: 'success' });
-        };
-        body.querySelector('#resetSeed').onclick = async () => {
-          if (await confirm({ title: '重置数据', message: '将清空当前项目数据并恢复演示数据，是否继续？', danger: true, okText: '重置' })) {
-            Store.resetToSeed(); render(); close(); toast('已重置', { type: 'success' });
-          }
-        };
-      }
-    });
-  };
-
-  Store.subscribe(render);
-  render();
+  window.addEventListener('resize', resize);
+  resize();
+  bindEvents();
+  renderHome();
+  Store.subscribe(() => renderHome());
 </script>
 </body>
 </html>

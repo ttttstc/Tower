@@ -63,6 +63,9 @@ body{overflow:hidden}
 }
 .detail-head-actions{display:flex;gap:10px;align-items:center}
 .detail-head-actions .tower-btn{min-width:118px}
+.detail-chip-row{
+  display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;
+}
 
 .overview-grid{
   display:grid;grid-template-columns:1.25fr .95fr;gap:22px;margin-top:18px;
@@ -326,6 +329,7 @@ function renderSections() {
   const downSummary = graph.downstream.length
     ? graph.downstream.map((entry) => entry.title).join('、')
     : '当前事项暂无已登记的下游承接事项。';
+  const milestoneSummary = (item.milestones || []).map((id) => Store.getMilestone(id)?.name).filter(Boolean);
 
   const html = `
     <section id="overview" data-anchor>
@@ -337,6 +341,9 @@ function renderSections() {
           </div>
           <div class="detail-sub">
             ${escapeHtml(layer?.name || item.layer)} / ${escapeHtml(item.assignee || '未分配负责人')} / ${item.effort} 人天 / 当前进度 ${progressPct}%
+          </div>
+          <div class="detail-chip-row">
+            ${milestoneSummary.length ? milestoneSummary.map((name) => `<span class="tower-chip">里程碑 · ${escapeHtml(name)}</span>`).join('') : '<span class="tower-chip">未绑定里程碑</span>'}
           </div>
         </div>
         <div class="detail-head-actions">
@@ -354,6 +361,7 @@ function renderSections() {
           <h4>推进摘要</h4>
           <p>上游依赖：${escapeHtml(depSummary)}</p>
           <p>下游承接：${escapeHtml(downSummary)}</p>
+          <p>关联里程碑：${escapeHtml(milestoneSummary.join('、') || '未绑定')}</p>
           <p>最近更新：${escapeHtml(new Date(item.updatedAt).toLocaleString('zh-CN'))}</p>
         </div>
       </div>
